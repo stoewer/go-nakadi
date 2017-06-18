@@ -27,7 +27,7 @@ type Stream interface {
 type TokenProvider func() (string, error)
 
 func (fn TokenProvider) Authorize(req *http.Request) error {
-	if fn != nil {
+	if fn == nil {
 		return errors.New("no token func")
 	}
 
@@ -54,14 +54,6 @@ func Timeout(timeout time.Duration) Option {
 	return func(c *Client) { c.timeout = timeout }
 }
 
-func HTTPClient(httpClient *http.Client) Option {
-	return func(c *Client) { c.httpClient = httpClient }
-}
-
-func HTTPStream(httpStream *http.Client) Option {
-	return func(c *Client) { c.httpStream = httpStream }
-}
-
 type Client struct {
 	nakadiURL     string
 	tokenProvider TokenProvider
@@ -78,12 +70,8 @@ func New(options ...Option) *Client {
 	for _, option := range options {
 		option(client)
 	}
-	if client.httpClient == nil {
-		client.httpClient = newHTTPClient(client.timeout)
-	}
-	if client.httpStream == nil {
-		client.httpStream = newHTTPStream(client.timeout)
-	}
+	client.httpClient = newHTTPClient(client.timeout)
+	client.httpStream = newHTTPStream(client.timeout)
 
 	return client
 }
@@ -157,12 +145,12 @@ func (c *Client) subscriptionURL() string {
 }
 
 type Subscription struct {
-	ID                string   `json:"id,omitempty"`
-	OwningApplication string   `json:"owning_application"`
-	EventTypes        []string `json:"event_types"`
-	ConsumerGroup     string   `json:"consumer_group,omitempty"`
-	ReadFrom          string   `json:"read_from,omitempty"`
-	CreatedAt         string   `json:"created_at,omitempty"`
+	ID                string    `json:"id,omitempty"`
+	OwningApplication string    `json:"owning_application"`
+	EventTypes        []string  `json:"event_types"`
+	ConsumerGroup     string    `json:"consumer_group,omitempty"`
+	ReadFrom          string    `json:"read_from,omitempty"`
+	CreatedAt         time.Time `json:"created_at,omitempty"`
 }
 
 type Cursor struct {

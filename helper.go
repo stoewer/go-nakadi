@@ -31,9 +31,8 @@ func newHTTPStream(timeout time.Duration) *http.Client {
 }
 
 type problemJSON struct {
-	Title    string `json:"title"`
-	Detail   string `json:"detail"`
-	Status   int    `json:"status"`
-	Type     string `json:"type"`
-	Instance string `json:"instance"`
+	Title  string `json:"title"`
+	Detail string `json:"detail"`
+	Status int    `json:"status"`
+	Type   string `json:"type"`
 }

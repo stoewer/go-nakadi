@@ -87,6 +87,7 @@ func (s *SimpleStream) Next() (*Cursor, []byte, error) {
 	}
 
 	for isPrefix {
+		// can't figure out how to cover this in unit test
 		var add []byte
 		add, isPrefix, err = s.buffer.ReadLine()
 		if err != nil {
