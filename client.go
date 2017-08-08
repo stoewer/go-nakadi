@@ -24,56 +24,120 @@ type Stream interface {
 	Close() error
 }
 
-type TokenProvider func() (string, error)
-
-func (fn TokenProvider) Authorize(req *http.Request) error {
-	if fn == nil {
-		return errors.New("no token func")
-	}
-
-	token, err := fn()
-	if err != nil {
-		return err
-	}
-	req.Header.Set("Authorization", "Bearer "+token)
-
-	return nil
-}
-
-type Option func(*Client)
-
-func URL(url string) Option {
-	return func(c *Client) { c.nakadiURL = url }
-}
-
-func Tokens(tokens TokenProvider) Option {
-	return func(c *Client) { c.tokenProvider = tokens }
-}
-
-func Timeout(timeout time.Duration) Option {
-	return func(c *Client) { c.timeout = timeout }
+type ClientOptions struct {
+	TokenProvider     func() (string, error)
+	ConnectionTimeout time.Duration
 }
 
 type Client struct {
 	nakadiURL     string
-	tokenProvider TokenProvider
+	tokenProvider func() (string, error)
 	timeout       time.Duration
 	httpClient    *http.Client
-	httpStream    *http.Client
 }
 
-func New(options ...Option) *Client {
+func New(url string, options *ClientOptions) *Client {
 	client := &Client{
-		nakadiURL: defaultNakadiURL,
-		timeout:   defaultTimeOut}
+		nakadiURL:     url,
+		timeout:       options.ConnectionTimeout,
+		tokenProvider: options.TokenProvider}
 
-	for _, option := range options {
-		option(client)
+	if client.timeout == 0 {
+		client.timeout = defaultTimeOut
 	}
 	client.httpClient = newHTTPClient(client.timeout)
-	client.httpStream = newHTTPStream(client.timeout)
 
 	return client
+}
+
+func (c *Client) httpGET(url string, body interface{}, msg string) error {
+	request, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		errors.Wrap(err, "unable to prepare request")
+	}
+
+	if c.tokenProvider != nil {
+		token, err := c.tokenProvider()
+		if err != nil {
+			errors.Wrap(err, "unable to prepare request")
+		}
+		request.Header.Set("Authorization", "Bearer "+token)
+	}
+
+	response, err := c.httpClient.Do(request)
+	if err != nil {
+		errors.Wrap(err, msg)
+	}
+
+	if response.StatusCode != http.StatusOK {
+		problem := problemJSON{}
+		err := json.NewDecoder(response.Body).Decode(&problem)
+		if err != nil {
+			errors.Wrap(err, "unable to decode response body")
+		}
+		return errors.Errorf("%s: %s", msg, problem.Detail)
+	}
+
+	eventType := EventType{}
+	err = json.NewDecoder(response.Body).Decode(&eventType)
+	if err != nil {
+		errors.Wrap(err, "unable to decode response body")
+	}
+
+	return nil
+}
+
+func (c *Client) httpPUT(url string, body interface{}) (*http.Response, error) {
+	encoded, err := json.Marshal(body)
+	if err != nil {
+		errors.Wrap(err, "unable to encode json body")
+	}
+
+	request, err := http.NewRequest("PUT", url, bytes.NewReader(encoded))
+	if err != nil {
+		errors.Wrap(err, "unable to prepare request")
+	}
+
+	if c.tokenProvider != nil {
+		token, err := c.tokenProvider()
+		if err != nil {
+			errors.Wrap(err, "unable to prepare request")
+		}
+		request.Header.Set("Authorization", "Bearer "+token)
+	}
+
+	return c.httpClient.Do(request)
+}
+
+func (c *Client) httpDELETE(url, msg string) error {
+	request, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		errors.Wrap(err, "unable to prepare request")
+	}
+
+	if c.tokenProvider != nil {
+		token, err := c.tokenProvider()
+		if err != nil {
+			errors.Wrap(err, "unable to prepare request")
+		}
+		request.Header.Set("Authorization", "Bearer "+token)
+	}
+
+	response, err := c.httpClient.Do(request)
+	if err != nil {
+		errors.Wrap(err, msg)
+	}
+
+	if response.StatusCode != http.StatusOK && response.StatusCode != http.StatusNoContent {
+		problem := problemJSON{}
+		err := json.NewDecoder(response.Body).Decode(&problem)
+		if err != nil {
+			errors.Wrap(err, "unable to decode response body")
+		}
+		return errors.Errorf("%s: %s", msg, problem.Detail)
+	}
+
+	return nil
 }
 
 func (c *Client) Subscribe(owningApplication, eventType, consumerGroup string) (*Subscription, error) {
@@ -130,7 +194,6 @@ func (c *Client) Stream(subscription *Subscription) (Stream, error) {
 		NakadiURL:     c.nakadiURL,
 		TokenProvider: c.tokenProvider,
 		HTTPClient:    c.httpClient,
-		HTTPStream:    c.httpStream,
 		Subscription:  subscription}
 
 	return opener.OpenStream()
