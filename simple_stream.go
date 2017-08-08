@@ -16,7 +16,7 @@ import (
 
 type SimpleStreamOpener struct {
 	NakadiURL     string
-	TokenProvider TokenProvider
+	TokenProvider func() (string, error)
 	HTTPClient    *http.Client
 	HTTPStream    *http.Client
 	Subscription  *Subscription
@@ -25,10 +25,11 @@ type SimpleStreamOpener struct {
 func (sso *SimpleStreamOpener) OpenStream() (Stream, error) {
 	req, err := http.NewRequest("GET", sso.streamURL(sso.Subscription.ID), nil)
 	if sso.TokenProvider != nil {
-		err = sso.TokenProvider.Authorize(req)
+		token, err := sso.TokenProvider()
 		if err != nil {
 			return nil, errors.Wrap(err, "unable to open stream")
 		}
+		req.Header.Set("Authorization", "Bearer "+token)
 	}
 
 	response, err := sso.HTTPStream.Do(req)
@@ -68,7 +69,7 @@ func (sso *SimpleStreamOpener) streamURL(id string) string {
 
 type SimpleStream struct {
 	nakadiURL      string
-	tokenProvider  TokenProvider
+	tokenProvider  func() (string, error)
 	subscriptionID string
 	nakadiStreamID string
 	httpClient     *http.Client
@@ -128,10 +129,11 @@ func (s *SimpleStream) Commit(cursor *Cursor) error {
 	req.Header.Set("Content-Type", "application/json;charset=UTF-8")
 	req.Header.Set("X-Nakadi-StreamId", cursor.NakadiStreamID)
 	if s.tokenProvider != nil {
-		err = s.tokenProvider.Authorize(req)
+		token, err := s.tokenProvider()
 		if err != nil {
 			return errors.Wrap(err, "unable to commit cursor")
 		}
+		req.Header.Set("Authorization", "Bearer "+token)
 	}
 
 	response, err := s.httpClient.Do(req)

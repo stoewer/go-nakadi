@@ -6,7 +6,6 @@ package nakadi
 import (
 	"fmt"
 	"net/http"
-	"net/http/httptest"
 	"testing"
 	"time"
 
@@ -16,84 +15,39 @@ import (
 	"gopkg.in/jarcoal/httpmock.v1"
 )
 
-func TestTokenProvider_Authorize(t *testing.T) {
-	t.Run("fail nil provider", func(t *testing.T) {
-		var provider TokenProvider
-		req := httptest.NewRequest("GET", "/", nil)
-
-		err := provider.Authorize(req)
-		require.Error(t, err)
-		assert.Regexp(t, "no token func", err)
-	})
-
-	t.Run("fail retrieve token", func(t *testing.T) {
-		provider := TokenProvider(func() (string, error) { return "", assert.AnError })
-		req := httptest.NewRequest("GET", "/", nil)
-
-		err := provider.Authorize(req)
-		require.Error(t, err)
-		assert.Regexp(t, assert.AnError, err)
-	})
-
-	t.Run("successfully add token", func(t *testing.T) {
-		provider := TokenProvider(func() (string, error) { return "token", nil })
-		req := httptest.NewRequest("GET", "/", nil)
-
-		err := provider.Authorize(req)
-		require.NoError(t, err)
-		assert.Equal(t, "Bearer token", req.Header.Get("Authorization"))
-	})
-}
-
 func TestNew(t *testing.T) {
-	t.Run("no options", func(t *testing.T) {
-		client := New()
-
-		require.NotNil(t, client)
-		assert.Equal(t, client.nakadiURL, defaultNakadiURL)
-		assert.Equal(t, client.timeout, defaultTimeOut)
-		assert.NotNil(t, client.httpClient)
-		assert.Equal(t, defaultTimeOut, client.httpClient.Timeout)
-		assert.NotNil(t, client.httpStream)
-		assert.Nil(t, client.tokenProvider)
-	})
-
-	t.Run("timeout option", func(t *testing.T) {
+	t.Run("with timeout", func(t *testing.T) {
 		timeout := 5 * time.Second
-		client := New(Timeout(timeout))
+		client := New(defaultNakadiURL, &ClientOptions{ConnectionTimeout: timeout})
 
 		require.NotNil(t, client)
 		assert.Equal(t, client.nakadiURL, defaultNakadiURL)
 		assert.Equal(t, client.timeout, timeout)
 		assert.NotNil(t, client.httpClient)
 		assert.Equal(t, timeout, client.httpClient.Timeout)
-		assert.NotNil(t, client.httpStream)
 		assert.Nil(t, client.tokenProvider)
 	})
 
-	t.Run("tokens option", func(t *testing.T) {
-		provider := TokenProvider(func() (string, error) { return "token", nil })
-		client := New(Tokens(provider))
+	t.Run("with token provider", func(t *testing.T) {
+		client := New(defaultNakadiURL, &ClientOptions{TokenProvider: func() (string, error) { return "token", nil }})
 
 		require.NotNil(t, client)
 		assert.Equal(t, client.nakadiURL, defaultNakadiURL)
 		assert.Equal(t, client.timeout, defaultTimeOut)
 		assert.NotNil(t, client.httpClient)
 		assert.Equal(t, defaultTimeOut, client.httpClient.Timeout)
-		assert.NotNil(t, client.httpStream)
 		assert.NotNil(t, client.tokenProvider)
 	})
 
-	t.Run("url option", func(t *testing.T) {
+	t.Run("no options", func(t *testing.T) {
 		url := "https://example.com/nakadi"
-		client := New(URL(url))
+		client := New(url, nil)
 
 		require.NotNil(t, client)
 		assert.Equal(t, client.nakadiURL, url)
 		assert.Equal(t, client.timeout, defaultTimeOut)
 		assert.NotNil(t, client.httpClient)
 		assert.Equal(t, defaultTimeOut, client.httpClient.Timeout)
-		assert.NotNil(t, client.httpStream)
 		assert.Nil(t, client.tokenProvider)
 	})
 }
@@ -169,27 +123,26 @@ func TestClient_Subscribe(t *testing.T) {
 	})
 }
 
-func TestClient_Stream(t *testing.T) {
-	httpmock.Activate()
-	defer httpmock.DeactivateAndReset()
-
-	sub := &Subscription{
-		ID:                "4e6f4b42-5459-11e7-8b76-97cbdf1f5274",
-		OwningApplication: "nakadi-client",
-		EventTypes:        []string{"test"},
-		ConsumerGroup:     "default",
-		ReadFrom:          "end",
-		CreatedAt:         time.Now()}
-	client := &Client{
-		nakadiURL:  defaultNakadiURL,
-		httpClient: http.DefaultClient,
-		httpStream: http.DefaultClient}
-	url := fmt.Sprintf("%s/subscriptions/%s/events", defaultNakadiURL, sub.ID)
-
-	responder, _ := httpmock.NewJsonResponder(200, sub)
-	httpmock.RegisterResponder("GET", url, responder)
-
-	stream, err := client.Stream(sub)
-	require.NoError(t, err)
-	assert.NotNil(t, stream)
-}
+//func TestClient_Stream(t *testing.T) {
+//	httpmock.Activate()
+//	defer httpmock.DeactivateAndReset()
+//
+//	sub := &Subscription{
+//		ID:                "4e6f4b42-5459-11e7-8b76-97cbdf1f5274",
+//		OwningApplication: "nakadi-client",
+//		EventTypes:        []string{"test"},
+//		ConsumerGroup:     "default",
+//		ReadFrom:          "end",
+//		CreatedAt:         time.Now()}
+//	client := &Client{
+//		nakadiURL:  defaultNakadiURL,
+//		httpClient: http.DefaultClient}
+//	url := fmt.Sprintf("%s/subscriptions/%s/events", defaultNakadiURL, sub.ID)
+//
+//	responder, _ := httpmock.NewJsonResponder(200, sub)
+//	httpmock.RegisterResponder("GET", url, responder)
+//
+//	stream, err := client.Stream(sub)
+//	require.NoError(t, err)
+//	assert.NotNil(t, stream)
+//}

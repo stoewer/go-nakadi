@@ -6,7 +6,6 @@ package nakadi
 import (
 	"encoding/json"
 	"io/ioutil"
-	"net/http"
 	"path/filepath"
 	"testing"
 	"time"
@@ -14,15 +13,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
-
-func helperLoadGolden(t *testing.T, name string) []byte {
-	path := filepath.Join("testdata", name) // relative path
-	bytes, err := ioutil.ReadFile(path)
-	if err != nil {
-		t.Fatal(err)
-	}
-	return bytes
-}
 
 func TestNewHTTPClient(t *testing.T) {
 	timeout := 20 * time.Second
@@ -40,24 +30,22 @@ func TestNewHTTPStream(t *testing.T) {
 	assert.Equal(t, 0*time.Second, client.Timeout)
 }
 
-func TestProblemJSON(t *testing.T) {
-	serialized := helperLoadGolden(t, "problem-json.json.golden")
-	problem := &problemJSON{
-		Type:   "http://httpstatus.es/404",
-		Title:  "Not Found",
-		Status: http.StatusNotFound,
-		Detail: "topic not found"}
+func TestProblemJSON_Marshal(t *testing.T) {
+	problem := &problemJSON{}
+	expected := helperLoadTestData(t, "problem-json.json", problem)
 
-	t.Run("marshal", func(t *testing.T) {
-		result, err := json.Marshal(problem)
-		require.NoError(t, err)
-		assert.JSONEq(t, string(serialized), string(result))
-	})
+	serialized, err := json.Marshal(problem)
+	require.NoError(t, err)
+	assert.JSONEq(t, string(expected), string(serialized))
+}
 
-	t.Run("unmarshal", func(t *testing.T) {
-		result := &problemJSON{}
-		err := json.Unmarshal(serialized, result)
+func helperLoadTestData(t *testing.T, name string, target interface{}) []byte {
+	path := filepath.Join("testdata", name)
+	bytes, err := ioutil.ReadFile(path)
+	require.NoError(t, err)
+	if target != nil {
+		err = json.Unmarshal(bytes, target)
 		require.NoError(t, err)
-		assert.Equal(t, problem, result)
-	})
+	}
+	return bytes
 }

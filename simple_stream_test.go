@@ -151,7 +151,7 @@ func TestSimpleStream_Next(t *testing.T) {
 		httpmock.Activate()
 		defer httpmock.DeactivateAndReset()
 
-		events := helperLoadGolden(t, "data-event-stream.json.golden")
+		events := helperLoadTestData(t, "data-event-stream.json", nil)
 		stream := setupStream(httpmock.NewStringResponder(200, string(events)))
 
 		for i := 0; i < 5; i++ {

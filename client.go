@@ -37,16 +37,23 @@ type Client struct {
 }
 
 func New(url string, options *ClientOptions) *Client {
-	client := &Client{
-		nakadiURL:     url,
-		timeout:       options.ConnectionTimeout,
-		tokenProvider: options.TokenProvider}
+	var client *Client
+	if options == nil {
+		client = &Client{
+			nakadiURL: url,
+			timeout:   defaultTimeOut}
+	} else {
+		client = &Client{
+			nakadiURL:     url,
+			timeout:       options.ConnectionTimeout,
+			tokenProvider: options.TokenProvider}
 
-	if client.timeout == 0 {
-		client.timeout = defaultTimeOut
+		if client.timeout == 0 {
+			client.timeout = defaultTimeOut
+		}
 	}
-	client.httpClient = newHTTPClient(client.timeout)
 
+	client.httpClient = newHTTPClient(client.timeout)
 	return client
 }
 
