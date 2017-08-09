@@ -60,35 +60,34 @@ func New(url string, options *ClientOptions) *Client {
 func (c *Client) httpGET(url string, body interface{}, msg string) error {
 	request, err := http.NewRequest("GET", url, nil)
 	if err != nil {
-		errors.Wrap(err, "unable to prepare request")
+		return errors.Wrap(err, "unable to prepare request")
 	}
 
 	if c.tokenProvider != nil {
 		token, err := c.tokenProvider()
 		if err != nil {
-			errors.Wrap(err, "unable to prepare request")
+			return errors.Wrap(err, "unable to prepare request")
 		}
 		request.Header.Set("Authorization", "Bearer "+token)
 	}
 
 	response, err := c.httpClient.Do(request)
 	if err != nil {
-		errors.Wrap(err, msg)
+		return errors.Wrap(err, msg)
 	}
 
 	if response.StatusCode != http.StatusOK {
 		problem := problemJSON{}
 		err := json.NewDecoder(response.Body).Decode(&problem)
 		if err != nil {
-			errors.Wrap(err, "unable to decode response body")
+			return errors.Wrap(err, "unable to decode response body")
 		}
 		return errors.Errorf("%s: %s", msg, problem.Detail)
 	}
 
-	eventType := EventType{}
-	err = json.NewDecoder(response.Body).Decode(&eventType)
+	err = json.NewDecoder(response.Body).Decode(body)
 	if err != nil {
-		errors.Wrap(err, "unable to decode response body")
+		return errors.Wrap(err, "unable to decode response body")
 	}
 
 	return nil
@@ -97,18 +96,18 @@ func (c *Client) httpGET(url string, body interface{}, msg string) error {
 func (c *Client) httpPUT(url string, body interface{}) (*http.Response, error) {
 	encoded, err := json.Marshal(body)
 	if err != nil {
-		errors.Wrap(err, "unable to encode json body")
+		return nil, errors.Wrap(err, "unable to encode json body")
 	}
 
 	request, err := http.NewRequest("PUT", url, bytes.NewReader(encoded))
 	if err != nil {
-		errors.Wrap(err, "unable to prepare request")
+		return nil, errors.Wrap(err, "unable to prepare request")
 	}
 
 	if c.tokenProvider != nil {
 		token, err := c.tokenProvider()
 		if err != nil {
-			errors.Wrap(err, "unable to prepare request")
+			return nil, errors.Wrap(err, "unable to prepare request")
 		}
 		request.Header.Set("Authorization", "Bearer "+token)
 	}
@@ -117,29 +116,29 @@ func (c *Client) httpPUT(url string, body interface{}) (*http.Response, error) {
 }
 
 func (c *Client) httpDELETE(url, msg string) error {
-	request, err := http.NewRequest("GET", url, nil)
+	request, err := http.NewRequest("DELETE", url, nil)
 	if err != nil {
-		errors.Wrap(err, "unable to prepare request")
+		return errors.Wrap(err, "unable to prepare request")
 	}
 
 	if c.tokenProvider != nil {
 		token, err := c.tokenProvider()
 		if err != nil {
-			errors.Wrap(err, "unable to prepare request")
+			return errors.Wrap(err, "unable to prepare request")
 		}
 		request.Header.Set("Authorization", "Bearer "+token)
 	}
 
 	response, err := c.httpClient.Do(request)
 	if err != nil {
-		errors.Wrap(err, msg)
+		return errors.Wrap(err, msg)
 	}
 
 	if response.StatusCode != http.StatusOK && response.StatusCode != http.StatusNoContent {
 		problem := problemJSON{}
 		err := json.NewDecoder(response.Body).Decode(&problem)
 		if err != nil {
-			errors.Wrap(err, "unable to decode response body")
+			return errors.Wrap(err, "unable to decode response body")
 		}
 		return errors.Errorf("%s: %s", msg, problem.Detail)
 	}

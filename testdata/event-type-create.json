@@ -1,0 +1,19 @@
+{
+  "name": "test-event.change",
+  "owning_application": "test-application",
+  "category": "data",
+  "partition_strategy": "hash",
+  "schema": {
+    "type": "json-schema",
+    "schema": "{\"type\":\"object\",\"test\":\"test\",\"additionalProperties\":true}"
+  },
+  "partition_key_fields": [
+    "test"
+  ],
+  "default_statistics": {
+    "messages_per_minute": 100,
+    "message_size": 100000,
+    "read_parallelism": 4,
+    "write_parallelism": 4
+  }
+}

@@ -1,3 +1,6 @@
+// Copyright (c) 2017, A. Stoewer <adrian.stoewer@rz.ifi.lmu.de>
+// All rights reserved.
+
 package nakadi
 
 import (
@@ -87,12 +90,16 @@ func (etm *httpEventTypeManager) Get(name string) (*EventType, error) {
 
 func (etm *httpEventTypeManager) Save(eventType *EventType) (*EventType, error) {
 	response, err := etm.client.httpPUT(etm.eventURL(eventType.Name), eventType)
+	if err != nil {
+		return nil, errors.Wrap(err, "unable to save event type")
+	}
+	defer response.Body.Close()
 
 	if response.StatusCode != http.StatusOK {
 		problem := problemJSON{}
 		err := json.NewDecoder(response.Body).Decode(&problem)
 		if err != nil {
-			errors.Wrap(err, "unable to decode response body")
+			return nil, errors.Wrap(err, "unable to decode response body")
 		}
 		return nil, errors.Errorf("unable to request event types: %s", problem.Detail)
 	}
@@ -100,7 +107,7 @@ func (etm *httpEventTypeManager) Save(eventType *EventType) (*EventType, error) 
 	eventType = &EventType{}
 	err = json.NewDecoder(response.Body).Decode(eventType)
 	if err != nil {
-		errors.Wrap(err, "unable to decode response body")
+		return nil, errors.Wrap(err, "unable to decode response body")
 	}
 
 	return eventType, nil

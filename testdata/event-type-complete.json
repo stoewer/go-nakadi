@@ -1,0 +1,29 @@
+{
+  "name": "test-event.change",
+  "owning_application": "test-application",
+  "category": "data",
+  "enrichment_strategies": [
+    "metadata_enrichment"
+  ],
+  "partition_strategy": "hash",
+  "schema": {
+    "version": "0.0.1",
+    "type": "json-schema",
+    "schema": "{\"type\":\"object\",\"test\":\"test\",\"additionalProperties\":true}",
+    "created_at": "2017-08-07T22:53:03+02:00"
+  },
+  "partition_key_fields": [
+    "test"
+  ],
+  "default_statistics": {
+    "messages_per_minute": 100,
+    "message_size": 100000,
+    "read_parallelism": 4,
+    "write_parallelism": 4
+  },
+  "options": {
+    "retention_time": 345600000
+  },
+  "created_at": "2017-08-07T22:53:03+02:00",
+  "updated_at": "2017-08-08T22:53:03+02:00"
+}
