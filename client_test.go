@@ -9,7 +9,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stoewer/go-nakadi/event"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gopkg.in/jarcoal/httpmock.v1"
@@ -55,7 +54,7 @@ func TestNew(t *testing.T) {
 func TestClient_Publish(t *testing.T) {
 	client := &Client{}
 	// TODO implement actual test
-	err := client.Publish("", event.DataChange{})
+	err := client.Publish("", DataChangeEvent{})
 	require.Nil(t, err)
 }
 

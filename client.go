@@ -115,6 +115,28 @@ func (c *Client) httpPUT(url string, body interface{}) (*http.Response, error) {
 	return c.httpClient.Do(request)
 }
 
+func (c *Client) httpPOST(url string, body interface{}) (*http.Response, error) {
+	encoded, err := json.Marshal(body)
+	if err != nil {
+		return nil, errors.Wrap(err, "unable to encode json body")
+	}
+
+	request, err := http.NewRequest("POST", url, bytes.NewReader(encoded))
+	if err != nil {
+		return nil, errors.Wrap(err, "unable to prepare request")
+	}
+
+	if c.tokenProvider != nil {
+		token, err := c.tokenProvider()
+		if err != nil {
+			return nil, errors.Wrap(err, "unable to prepare request")
+		}
+		request.Header.Set("Authorization", "Bearer "+token)
+	}
+
+	return c.httpClient.Do(request)
+}
+
 func (c *Client) httpDELETE(url, msg string) error {
 	request, err := http.NewRequest("DELETE", url, nil)
 	if err != nil {

@@ -1,0 +1,15 @@
+{
+  "metadata": {
+    "eid": "0d86a6e4-7e06-11e7-9821-33fb3d356151",
+    "occurred_at": "2017-08-10T22:01:45.764778368+02:00",
+    "event_type": "test-event.business",
+    "partition": "0",
+    "ParentEIDs": [
+      "19a03c7e-7e06-11e7-8aeb-f7e7e7a41f87",
+      "1ffca0a8-7e06-11e7-8fb7-9b5eac2ea83b"
+    ],
+    "flow_id": "133f79bc-7e06-11e7-83d6-3faf840fe457",
+    "received_at": "2017-08-10T22:01:45.764778397+02:00"
+  },
+  "order_number": "1234"
+}

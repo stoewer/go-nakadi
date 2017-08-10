@@ -1,0 +1,18 @@
+[
+  {
+    "metadata": {
+      "eid": "528e0d60-7e09-11e7-9d73-a7a18ac33b18",
+      "occurred_at": "2017-08-10T22:01:45.764718043+02:00",
+      "event_type": "test-event.undefined"
+    },
+    "test": "test one"
+  },
+  {
+    "metadata": {
+      "eid": "4a9aecf4-7e09-11e7-8c74-fb5c52ba2f07",
+      "occurred_at": "2017-08-10T22:01:45.764718043+02:00",
+      "event_type": "test-event.undefined"
+    },
+    "test": "test two"
+  }
+]

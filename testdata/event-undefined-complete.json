@@ -1,0 +1,15 @@
+{
+  "metadata": {
+    "eid": "00e18950-7e05-11e7-bc3c-336ea98445ad",
+    "occurred_at": "2017-08-10T22:01:45.764718043+02:00",
+    "event_type": "test-event.undefined",
+    "partition": "0",
+    "ParentEIDs": [
+      "9f2a322e-7e05-11e7-a073-cb61fbdc738b",
+      "a60f8b0c-7e05-11e7-a973-2bb868b18fd5"
+    ],
+    "flow_id": "1c435b06-7e05-11e7-a394-c3c9d0872fa9",
+    "received_at": "2017-08-10T22:01:45.764718069+02:00"
+  },
+  "test": "test value"
+}
