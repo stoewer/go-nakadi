@@ -14,25 +14,22 @@ import (
 	"github.com/pkg/errors"
 )
 
-type SimpleStreamOpener struct {
-	NakadiURL     string
-	TokenProvider func() (string, error)
-	HTTPClient    *http.Client
-	HTTPStream    *http.Client
-	Subscription  *Subscription
+type simpleStreamOpener struct {
+	client         *Client
+	subscriptionID string
 }
 
-func (sso *SimpleStreamOpener) OpenStream() (Stream, error) {
-	req, err := http.NewRequest("GET", sso.streamURL(sso.Subscription.ID), nil)
-	if sso.TokenProvider != nil {
-		token, err := sso.TokenProvider()
+func (so *simpleStreamOpener) openStream() (streamer, error) {
+	req, err := http.NewRequest("GET", so.streamURL(so.subscriptionID), nil)
+	if so.client.tokenProvider != nil {
+		token, err := so.client.tokenProvider()
 		if err != nil {
 			return nil, errors.Wrap(err, "unable to open stream")
 		}
 		req.Header.Set("Authorization", "Bearer "+token)
 	}
 
-	response, err := sso.HTTPStream.Do(req)
+	response, err := so.client.httpStreamClient.Do(req)
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to create stream")
 	}
@@ -47,44 +44,32 @@ func (sso *SimpleStreamOpener) OpenStream() (Stream, error) {
 		return nil, errors.Errorf("unable to open stream: %s", problem.Detail)
 	}
 
-	if response.StatusCode != http.StatusOK {
-		return nil, errors.Errorf("unable to open stream: unexpected response code %d", response.StatusCode)
-	}
-
-	stream := &SimpleStream{
-		nakadiURL:      sso.NakadiURL,
-		tokenProvider:  sso.TokenProvider,
-		subscriptionID: sso.Subscription.ID,
+	s := &simpleStream{
 		nakadiStreamID: response.Header.Get("X-Nakadi-StreamId"),
-		httpClient:     sso.HTTPClient,
 		buffer:         bufio.NewReader(response.Body),
 		closer:         response.Body}
 
-	return stream, nil
+	return s, nil
 }
 
-func (sso *SimpleStreamOpener) streamURL(id string) string {
-	return fmt.Sprintf("%s/subscriptions/%s/events", sso.NakadiURL, id)
+func (so *simpleStreamOpener) streamURL(id string) string {
+	return fmt.Sprintf("%s/subscriptions/%s/events", so.client.nakadiURL, id)
 }
 
-type SimpleStream struct {
-	nakadiURL      string
-	tokenProvider  func() (string, error)
-	subscriptionID string
+type simpleStream struct {
 	nakadiStreamID string
-	httpClient     *http.Client
 	buffer         *bufio.Reader
 	closer         io.Closer
 }
 
-func (s *SimpleStream) Next() (*Cursor, []byte, error) {
+func (s *simpleStream) nextEvents() (Cursor, []byte, error) {
 	if s.buffer == nil {
-		return nil, nil, errors.New("failed to read next batch: stream is closed")
+		return Cursor{}, nil, errors.New("failed to read next batch: stream is closed")
 	}
 
 	line, isPrefix, err := s.buffer.ReadLine()
 	if err != nil {
-		return nil, nil, errors.Wrap(err, "failed to read next batch")
+		return Cursor{}, nil, errors.Wrap(err, "failed to read next batch")
 	}
 
 	for isPrefix {
@@ -92,18 +77,18 @@ func (s *SimpleStream) Next() (*Cursor, []byte, error) {
 		var add []byte
 		add, isPrefix, err = s.buffer.ReadLine()
 		if err != nil {
-			return nil, nil, errors.Wrap(err, "failed to read next batch")
+			return Cursor{}, nil, errors.Wrap(err, "failed to read next batch")
 		}
 		line = append(line, add...)
 	}
 
 	batch := struct {
-		Cursor *Cursor          `json:"cursor"`
+		Cursor Cursor           `json:"cursor"`
 		Events *json.RawMessage `json:"events"`
 	}{}
 	err = json.Unmarshal(line, &batch)
 	if err != nil {
-		return nil, nil, errors.Wrap(err, "failed to unmarshal next batch")
+		return Cursor{}, nil, errors.Wrap(err, "failed to unmarshal next batch")
 	}
 	batch.Cursor.NakadiStreamID = s.nakadiStreamID
 
@@ -113,12 +98,20 @@ func (s *SimpleStream) Next() (*Cursor, []byte, error) {
 	return batch.Cursor, []byte(*batch.Events), nil
 }
 
-func (s *SimpleStream) Commit(cursor *Cursor) error {
+func (s *simpleStream) closeStream() error {
+	s.buffer = nil
+	return s.closer.Close()
+}
+
+type simpleCommitter struct {
+	client         *Client
+	subscriptionID string
+}
+
+func (s *simpleCommitter) commitCursor(cursor Cursor) error {
 	wrap := &struct {
-		Items []*Cursor `json:"items"`
-	}{
-		Items: []*Cursor{cursor},
-	}
+		Items []Cursor `json:"items"`
+	}{Items: []Cursor{cursor}}
 
 	data, err := json.Marshal(wrap)
 	if err != nil {
@@ -128,15 +121,15 @@ func (s *SimpleStream) Commit(cursor *Cursor) error {
 	req, err := http.NewRequest("POST", s.commitURL(s.subscriptionID), bytes.NewReader(data))
 	req.Header.Set("Content-Type", "application/json;charset=UTF-8")
 	req.Header.Set("X-Nakadi-StreamId", cursor.NakadiStreamID)
-	if s.tokenProvider != nil {
-		token, err := s.tokenProvider()
+	if s.client.tokenProvider != nil {
+		token, err := s.client.tokenProvider()
 		if err != nil {
 			return errors.Wrap(err, "unable to commit cursor")
 		}
 		req.Header.Set("Authorization", "Bearer "+token)
 	}
 
-	response, err := s.httpClient.Do(req)
+	response, err := s.client.httpClient.Do(req)
 	if err != nil {
 		return errors.Wrap(err, "unable to commit cursor")
 	}
@@ -152,18 +145,9 @@ func (s *SimpleStream) Commit(cursor *Cursor) error {
 		return errors.Errorf("unable to commit cursor: %s", problem.Detail)
 	}
 
-	if response.StatusCode != http.StatusOK && response.StatusCode != http.StatusNoContent {
-		return errors.Errorf("unable commit cursor: unexpected response code %d", response.StatusCode)
-	}
-
 	return nil
 }
 
-func (s *SimpleStream) Close() error {
-	s.buffer = nil
-	return s.closer.Close()
-}
-
-func (s *SimpleStream) commitURL(id string) string {
-	return fmt.Sprintf("%s/subscriptions/%s/cursors", s.nakadiURL, id)
+func (s *simpleCommitter) commitURL(id string) string {
+	return fmt.Sprintf("%s/subscriptions/%s/cursors", s.client.nakadiURL, id)
 }
