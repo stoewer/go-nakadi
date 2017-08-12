@@ -63,33 +63,33 @@ type EventTypeOptions struct {
 // NewEvents creates a new instance of a EventAPI implementation which can be used to
 // manage event types on a specific Nakadi service.
 func NewEvents(client *Client) EventAPI {
-	return &httpEventTypeManager{client: client}
+	return &httpEventAPI{client: client}
 }
 
-type httpEventTypeManager struct {
+type httpEventAPI struct {
 	client *Client
 }
 
-func (etm *httpEventTypeManager) List() ([]*EventType, error) {
+func (e *httpEventAPI) List() ([]*EventType, error) {
 	eventTypes := []*EventType{}
-	err := etm.client.httpGET(etm.eventListURL(), &eventTypes, "unable to request event types")
+	err := e.client.httpGET(e.eventBaseURL(), &eventTypes, "unable to request event types")
 	if err != nil {
 		return nil, err
 	}
 	return eventTypes, nil
 }
 
-func (etm *httpEventTypeManager) Get(name string) (*EventType, error) {
-	eventType := EventType{}
-	err := etm.client.httpGET(etm.eventURL(name), &eventType, "unable to request event types")
+func (e *httpEventAPI) Get(name string) (*EventType, error) {
+	eventType := &EventType{}
+	err := e.client.httpGET(e.eventURL(name), eventType, "unable to request event types")
 	if err != nil {
 		return nil, err
 	}
-	return &eventType, nil
+	return eventType, nil
 }
 
-func (etm *httpEventTypeManager) Save(eventType *EventType) (*EventType, error) {
-	response, err := etm.client.httpPUT(etm.eventURL(eventType.Name), eventType)
+func (e *httpEventAPI) Save(eventType *EventType) (*EventType, error) {
+	response, err := e.client.httpPUT(e.eventURL(eventType.Name), eventType)
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to save event type")
 	}
@@ -101,7 +101,7 @@ func (etm *httpEventTypeManager) Save(eventType *EventType) (*EventType, error) 
 		if err != nil {
 			return nil, errors.Wrap(err, "unable to decode response body")
 		}
-		return nil, errors.Errorf("unable to request event types: %s", problem.Detail)
+		return nil, errors.Errorf("unable to save event type: %s", problem.Detail)
 	}
 
 	eventType = &EventType{}
@@ -113,14 +113,14 @@ func (etm *httpEventTypeManager) Save(eventType *EventType) (*EventType, error) 
 	return eventType, nil
 }
 
-func (etm *httpEventTypeManager) Delete(name string) error {
-	return etm.client.httpDELETE(etm.eventURL(name), "unable to delete event type")
+func (e *httpEventAPI) Delete(name string) error {
+	return e.client.httpDELETE(e.eventURL(name), "unable to delete event type")
 }
 
-func (etm *httpEventTypeManager) eventURL(name string) string {
-	return fmt.Sprintf("%s/event-types/%s", etm.client.nakadiURL, name)
+func (e *httpEventAPI) eventURL(name string) string {
+	return fmt.Sprintf("%s/event-types/%s", e.client.nakadiURL, name)
 }
 
-func (etm *httpEventTypeManager) eventListURL() string {
-	return fmt.Sprintf("%s/event-types", etm.client.nakadiURL)
+func (e *httpEventAPI) eventBaseURL() string {
+	return fmt.Sprintf("%s/event-types", e.client.nakadiURL)
 }

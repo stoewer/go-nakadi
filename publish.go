@@ -66,6 +66,7 @@ func (p *httpPublishAPI) Publish(events interface{}) error {
 	if err != nil {
 		return errors.Wrap(err, "unable to publish event")
 	}
+	defer response.Body.Close()
 
 	if response.StatusCode == http.StatusMultiStatus || response.StatusCode == http.StatusUnprocessableEntity {
 		batchItemError := BatchItemsError{}
