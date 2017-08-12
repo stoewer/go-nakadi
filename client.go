@@ -235,15 +235,6 @@ func (c *Client) subscriptionURL() string {
 	return fmt.Sprintf("%s/subscriptions", c.nakadiURL)
 }
 
-type Subscription struct {
-	ID                string    `json:"id,omitempty"`
-	OwningApplication string    `json:"owning_application"`
-	EventTypes        []string  `json:"event_types"`
-	ConsumerGroup     string    `json:"consumer_group,omitempty"`
-	ReadFrom          string    `json:"read_from,omitempty"`
-	CreatedAt         time.Time `json:"created_at,omitempty"`
-}
-
 type Cursor struct {
 	Partition      string `json:"partition"`
 	Offset         string `json:"offset"`
