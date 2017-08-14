@@ -15,7 +15,7 @@ type EventMetadata struct {
 	OccurredAt time.Time `json:"occurred_at"`
 	EventType  string    `json:"event_type,omitempty"`
 	Partition  string    `json:"partition,omitempty"`
-	ParentEIDs []string  `josn:"parent_eids,omitempty"`
+	ParentEIDs []string  `json:"parent_eids,omitempty"`
 	FlowID     string    `json:"flow_id,omitempty"`
 	ReceivedAt time.Time `json:"received_at,omitempty"`
 }

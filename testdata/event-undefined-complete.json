@@ -4,7 +4,7 @@
     "occurred_at": "2017-08-10T22:01:45.764718043+02:00",
     "event_type": "test-event.undefined",
     "partition": "0",
-    "ParentEIDs": [
+    "parent_eids": [
       "9f2a322e-7e05-11e7-a073-cb61fbdc738b",
       "a60f8b0c-7e05-11e7-a973-2bb868b18fd5"
     ],
