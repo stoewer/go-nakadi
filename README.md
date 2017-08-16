@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/stoewer/go-nakadi.svg?branch=master)](https://travis-ci.org/stoewer/go-nakadi)
+[![Coverage Status](https://coveralls.io/repos/github/stoewer/go-nakadi/badge.svg?branch=master)](https://coveralls.io/github/stoewer/go-nakadi?branch=master)
 [![GoDoc](https://godoc.org/github.com/stoewer/go-nakadi?status.svg)](https://godoc.org/github.com/stoewer/go-nakadi)
 ---
 
