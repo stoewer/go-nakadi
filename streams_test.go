@@ -185,7 +185,7 @@ func TestHttpStreamAPI_Close(t *testing.T) {
 	}()
 
 	opener.unblock <- struct{}{}
-	time.Sleep(50 * time.Millisecond)
+	time.Sleep(100 * time.Millisecond)
 	stream.unblock <- struct{}{}
 
 	err := <-errorCh

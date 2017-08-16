@@ -5,10 +5,11 @@ import (
 	"testing"
 
 	"fmt"
+	"net/http"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gopkg.in/jarcoal/httpmock.v1"
-	"net/http"
 )
 
 type SomeData struct {

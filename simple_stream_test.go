@@ -14,6 +14,8 @@ import (
 )
 
 func TestSimpleStreamOpener_openStream(t *testing.T) {
+	createdAt := time.Time{}
+	createdAt.UnmarshalText([]byte("2017-08-17T00:00:23+02:00"))
 
 	sub := &Subscription{
 		ID:                "4e6f4b42-5459-11e7-8b76-97cbdf1f5274",
@@ -21,7 +23,7 @@ func TestSimpleStreamOpener_openStream(t *testing.T) {
 		EventTypes:        []string{"test"},
 		ConsumerGroup:     "default",
 		ReadFrom:          "end",
-		CreatedAt:         time.Now()}
+		CreatedAt:         createdAt}
 
 	url := fmt.Sprintf("%s/subscriptions/%s/events", defaultNakadiURL, sub.ID)
 
