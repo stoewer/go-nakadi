@@ -1,6 +1,3 @@
-// Copyright (c) 2017, A. Stoewer <adrian.stoewer@rz.ifi.lmu.de>
-// All rights reserved.
-
 package nakadi
 
 import (
@@ -13,11 +10,18 @@ import (
 )
 
 // EventAPI is an interface which allows to inspect and manage event types on
-// a Nakadi service.
+// a Nakadi instance.
 type EventAPI interface {
+	// List returns all registered event types.
 	List() ([]*EventType, error)
+
+	// Get returns an event type based on its name.
 	Get(name string) (*EventType, error)
+
+	// Save creates or updates the provided event type.
 	Save(eventType *EventType) (*EventType, error)
+
+	// Delete removes an event type.
 	Delete(name string) error
 }
 
@@ -66,6 +70,7 @@ func NewEvents(client *Client) EventAPI {
 	return &httpEventAPI{client: client}
 }
 
+// httpEventAPI is the actual implementation of EventAPI
 type httpEventAPI struct {
 	client *Client
 }

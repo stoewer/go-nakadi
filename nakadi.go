@@ -1,6 +1,3 @@
-// Copyright (c) 2017, A. Stoewer <adrian.stoewer@rz.ifi.lmu.de>
-// All rights reserved.
-
 package nakadi
 
 import (
@@ -17,17 +14,8 @@ const (
 	defaultNakadiURL = "http://localhost:8080"
 )
 
-type Stream interface {
-	Next() (*Cursor, []byte, error)
-	Commit(*Cursor) error
-	Close() error
-}
-
-type ClientOptions struct {
-	TokenProvider     func() (string, error)
-	ConnectionTimeout time.Duration
-}
-
+// A Client represents a basic configuration to access a Nakadi instance. The client is used to configure
+// other sub APIs of the `go-nakadi` package.
 type Client struct {
 	nakadiURL        string
 	tokenProvider    func() (string, error)
@@ -36,6 +24,15 @@ type Client struct {
 	httpStreamClient *http.Client
 }
 
+// ClientOptions contains all non mandatory parameters used to instantiate the Nakadi client.
+type ClientOptions struct {
+	TokenProvider     func() (string, error)
+	ConnectionTimeout time.Duration
+}
+
+// New creates a new Nakadi client. New receives the URL of the Nakadi instance the client should connect to.
+// In addition the second parameter options can be used to configure the behavior of the client and of all sub
+// APIs in this package. The options may be nil.
 func New(url string, options *ClientOptions) *Client {
 	var client *Client
 	if options == nil {
@@ -59,6 +56,7 @@ func New(url string, options *ClientOptions) *Client {
 	return client
 }
 
+// httpGET fetches json encoded data with a GET request.
 func (c *Client) httpGET(url string, body interface{}, msg string) error {
 	request, err := http.NewRequest("GET", url, nil)
 	if err != nil {
@@ -96,6 +94,7 @@ func (c *Client) httpGET(url string, body interface{}, msg string) error {
 	return nil
 }
 
+// httpPUT sends json encoded data via PUT request and returns a response.
 func (c *Client) httpPUT(url string, body interface{}) (*http.Response, error) {
 	encoded, err := json.Marshal(body)
 	if err != nil {
@@ -119,6 +118,7 @@ func (c *Client) httpPUT(url string, body interface{}) (*http.Response, error) {
 	return c.httpClient.Do(request)
 }
 
+// httpPOST sends json encoded data via POST request and returns a response.
 func (c *Client) httpPOST(url string, body interface{}) (*http.Response, error) {
 	encoded, err := json.Marshal(body)
 	if err != nil {
@@ -142,6 +142,8 @@ func (c *Client) httpPOST(url string, body interface{}) (*http.Response, error) 
 	return c.httpClient.Do(request)
 }
 
+// httpDELETE sends a DELETE request. On errors httpDELETE expects a response body to contain
+// an error message in the format of application/problem+json.
 func (c *Client) httpDELETE(url, msg string) error {
 	request, err := http.NewRequest("DELETE", url, nil)
 	if err != nil {

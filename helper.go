@@ -1,6 +1,3 @@
-// Copyright (c) 2017, A. Stoewer <adrian.stoewer@rz.ifi.lmu.de>
-// All rights reserved.
-
 package nakadi
 
 import (
@@ -9,6 +6,7 @@ import (
 	"time"
 )
 
+// newHTTPClient crates an http client which is used for non streaming requests.
 func newHTTPClient(timeout time.Duration) *http.Client {
 	return &http.Client{
 		Timeout: timeout,
@@ -20,6 +18,7 @@ func newHTTPClient(timeout time.Duration) *http.Client {
 	}
 }
 
+// newHTTPStream creates an http client which is used for streaming purposes.
 func newHTTPStream(timeout time.Duration) *http.Client {
 	return &http.Client{
 		Transport: &http.Transport{
@@ -30,6 +29,7 @@ func newHTTPStream(timeout time.Duration) *http.Client {
 	}
 }
 
+// problemJSON is used to decode error responses.
 type problemJSON struct {
 	Title  string `json:"title"`
 	Detail string `json:"detail"`

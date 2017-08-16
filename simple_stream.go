@@ -1,6 +1,3 @@
-// Copyright (c) 2017, A. Stoewer <adrian.stoewer@rz.ifi.lmu.de>
-// All rights reserved.
-
 package nakadi
 
 import (
@@ -14,6 +11,7 @@ import (
 	"github.com/pkg/errors"
 )
 
+// simpleStreamOpener implements the streamOpener interface.
 type simpleStreamOpener struct {
 	client         *Client
 	subscriptionID string
@@ -56,6 +54,7 @@ func (so *simpleStreamOpener) streamURL(id string) string {
 	return fmt.Sprintf("%s/subscriptions/%s/events", so.client.nakadiURL, id)
 }
 
+// simpleStream implements the streamer interface.
 type simpleStream struct {
 	nakadiStreamID string
 	buffer         *bufio.Reader
@@ -73,7 +72,6 @@ func (s *simpleStream) nextEvents() (Cursor, []byte, error) {
 	}
 
 	for isPrefix {
-		// can't figure out how to cover this in unit test
 		var add []byte
 		add, isPrefix, err = s.buffer.ReadLine()
 		if err != nil {
@@ -103,6 +101,7 @@ func (s *simpleStream) closeStream() error {
 	return s.closer.Close()
 }
 
+// simpleCommitter implements the committer interface.
 type simpleCommitter struct {
 	client         *Client
 	subscriptionID string
