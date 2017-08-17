@@ -17,21 +17,6 @@ type Cursor struct {
 	NakadiStreamID string `json:"-"`
 }
 
-// A StreamAPI is a sub API which is used to consume events from a specific subscription using Nakadi's
-// high level stream API. In order to ensure that only successfully processed events are committed, it is
-// crucial to commit cursors of respective event batches in the same order they were received.
-type StreamAPI interface {
-	// NextEvents reads the next batch of events from the stream and returns the encoded events along with the
-	// respective cursor. It blocks until the batch of events can be read from the stream, or the stream is closed.
-	NextEvents() (Cursor, []byte, error)
-
-	// CommitCursor commits a cursor to Nakadi.
-	CommitCursor(cursor Cursor) error
-
-	// Closes the stream.
-	Close() error
-}
-
 // StreamOptions contains optional parameters that are used to create a StreamAPI.
 type StreamOptions struct {
 	// The initial (minimal) retry interval used for the exponential backoff. This value is applied for
@@ -63,7 +48,7 @@ var defaultStreamOptions = StreamOptions{
 // package NewStream receives a configured Nakadi client. Furthermore a valid subscription ID must be
 // provided. Use the SubscriptionAPI in order to obtain subscriptions. The options parameter can be used
 // to configure the behavior of the stream. The options may be nil.
-func NewStream(client *Client, subscriptionID string, options *StreamOptions) StreamAPI {
+func NewStream(client *Client, subscriptionID string, options *StreamOptions) *StreamAPI {
 	var copyOptions StreamOptions
 	if options != nil {
 		copyOptions = *options
@@ -96,7 +81,7 @@ func NewStream(client *Client, subscriptionID string, options *StreamOptions) St
 	commitBackOff.InitialInterval = copyOptions.InitialRetryInterval
 	commitBackOff.MaxInterval = copyOptions.MaxRetryInterval
 
-	s := &httpStreamAPI{
+	s := &StreamAPI{
 		opener: &simpleStreamOpener{
 			client:         client,
 			subscriptionID: subscriptionID},
@@ -117,8 +102,10 @@ func NewStream(client *Client, subscriptionID string, options *StreamOptions) St
 	return s
 }
 
-// httpStreamAPI the actual implementation of the StreamAPI
-type httpStreamAPI struct {
+// A StreamAPI is a sub API which is used to consume events from a specific subscription using Nakadi's
+// high level stream API. In order to ensure that only successfully processed events are committed, it is
+// crucial to commit cursors of respective event batches in the same order they were received.
+type StreamAPI struct {
 	opener        streamOpener
 	committer     committer
 	eventCh       chan eventsOrError
@@ -130,7 +117,9 @@ type httpStreamAPI struct {
 	notifyOK      func()
 }
 
-func (s *httpStreamAPI) NextEvents() (Cursor, []byte, error) {
+// NextEvents reads the next batch of events from the stream and returns the encoded events along with the
+// respective cursor. It blocks until the batch of events can be read from the stream, or the stream is closed.
+func (s *StreamAPI) NextEvents() (Cursor, []byte, error) {
 	select {
 	case <-s.ctx.Done():
 		return Cursor{}, nil, context.Canceled
@@ -139,7 +128,8 @@ func (s *httpStreamAPI) NextEvents() (Cursor, []byte, error) {
 	}
 }
 
-func (s *httpStreamAPI) CommitCursor(cursor Cursor) error {
+// CommitCursor commits a cursor to Nakadi.
+func (s *StreamAPI) CommitCursor(cursor Cursor) error {
 	var err error
 
 	backoff.RetryNotify(func() error {
@@ -154,14 +144,15 @@ func (s *httpStreamAPI) CommitCursor(cursor Cursor) error {
 	return err
 }
 
-func (s *httpStreamAPI) Close() error {
+// Close ends the stream.
+func (s *StreamAPI) Close() error {
 	s.cancel()
 	return nil
 }
 
 // startStream is used to start a background routine which consumes events using a streamOpener and streamer.
 // this routine will never terminate (not even on errors) unless the stream is closed.
-func (s *httpStreamAPI) startStream() {
+func (s *StreamAPI) startStream() {
 	for {
 		var err error
 		var stream streamer

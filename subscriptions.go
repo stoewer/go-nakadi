@@ -19,35 +19,20 @@ type Subscription struct {
 	CreatedAt         time.Time `json:"created_at,omitempty"`
 }
 
-// NewSubscriptions crates a new instance of the SubscriptionAPI. As for all sub APIs of the `go-nakadi` package
-// NewSubscriptions receives a configured Nakadi client.
-func NewSubscriptions(client *Client) SubscriptionAPI {
-	return &httpSubscriptionAPI{
+// NewSubscriptionAPI crates a new instance of the SubscriptionAPI. As for all sub APIs of the `go-nakadi` package
+// NewSubscriptionAPI receives a configured Nakadi client.
+func NewSubscriptionAPI(client *Client) *SubscriptionAPI {
+	return &SubscriptionAPI{
 		client: client}
 }
 
-// SubscriptionAPI is a sub API of the `go-nakadi` package that is used to manage subscriptions.
-type SubscriptionAPI interface {
-	// List returns all available subscriptions.
-	List() ([]*Subscription, error)
-
-	// Get obtains a single subscription identified by its ID.
-	Get(id string) (*Subscription, error)
-
-	// Create initializes a new subscription. If the subscription already exists the pre existing subscription
-	// is returned.
-	Create(*Subscription) (*Subscription, error)
-
-	// Delete removes an existing subscription.
-	Delete(id string) error
-}
-
-// httpSubscriptionAPI is the actual implementation of SubscriptionAPI
-type httpSubscriptionAPI struct {
+// SubscriptionAPI is a sub API that is used to manage subscriptions.
+type SubscriptionAPI struct {
 	client *Client
 }
 
-func (s *httpSubscriptionAPI) List() ([]*Subscription, error) {
+// List returns all available subscriptions.
+func (s *SubscriptionAPI) List() ([]*Subscription, error) {
 	subscriptions := []*Subscription{}
 	err := s.client.httpGET(s.subBaseURL(), &subscriptions, "unable to request subscriptions")
 	if err != nil {
@@ -56,7 +41,8 @@ func (s *httpSubscriptionAPI) List() ([]*Subscription, error) {
 	return subscriptions, nil
 }
 
-func (s *httpSubscriptionAPI) Get(id string) (*Subscription, error) {
+// Get obtains a single subscription identified by its ID.
+func (s *SubscriptionAPI) Get(id string) (*Subscription, error) {
 	subscription := &Subscription{}
 	err := s.client.httpGET(s.subURL(id), subscription, "unable to request subscription")
 	if err != nil {
@@ -65,7 +51,9 @@ func (s *httpSubscriptionAPI) Get(id string) (*Subscription, error) {
 	return subscription, err
 }
 
-func (s *httpSubscriptionAPI) Create(subscription *Subscription) (*Subscription, error) {
+// Create initializes a new subscription. If the subscription already exists the pre existing subscription
+// is returned.
+func (s *SubscriptionAPI) Create(subscription *Subscription) (*Subscription, error) {
 	response, err := s.client.httpPOST(s.subBaseURL(), subscription)
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to create subscription")
@@ -90,14 +78,15 @@ func (s *httpSubscriptionAPI) Create(subscription *Subscription) (*Subscription,
 	return subscription, nil
 }
 
-func (s *httpSubscriptionAPI) Delete(id string) error {
+// Delete removes an existing subscription.
+func (s *SubscriptionAPI) Delete(id string) error {
 	return s.client.httpDELETE(s.subURL(id), "unable to delete subscription")
 }
 
-func (s *httpSubscriptionAPI) subURL(id string) string {
+func (s *SubscriptionAPI) subURL(id string) string {
 	return fmt.Sprintf("%s/subscriptions/%s", s.client.nakadiURL, id)
 }
 
-func (s *httpSubscriptionAPI) subBaseURL() string {
+func (s *SubscriptionAPI) subBaseURL() string {
 	return fmt.Sprintf("%s/subscriptions", s.client.nakadiURL)
 }

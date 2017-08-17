@@ -25,7 +25,7 @@ func TestHttpEventTypeManager_Get(t *testing.T) {
 	serialized := helperLoadTestData(t, "event-type-complete.json", expected)
 
 	client := &Client{nakadiURL: defaultNakadiURL, httpClient: http.DefaultClient}
-	api := NewEvents(client)
+	api := NewEventAPI(client)
 	url := fmt.Sprintf("%s/event-types/%s", defaultNakadiURL, expected.Name)
 
 	t.Run("fail connection error", func(t *testing.T) {
@@ -85,7 +85,7 @@ func TestHttpEventTypeManager_List(t *testing.T) {
 	serialized := helperLoadTestData(t, "event-types-complete.json", &expected)
 
 	client := &Client{nakadiURL: defaultNakadiURL, httpClient: http.DefaultClient}
-	api := NewEvents(client)
+	api := NewEventAPI(client)
 	url := fmt.Sprintf("%s/event-types", defaultNakadiURL)
 
 	t.Run("fail connection error", func(t *testing.T) {
@@ -148,7 +148,7 @@ func TestHttpEventTypeManager_Save(t *testing.T) {
 		nakadiURL:     defaultNakadiURL,
 		httpClient:    http.DefaultClient,
 		tokenProvider: func() (string, error) { return "token", nil }}
-	api := NewEvents(client)
+	api := NewEventAPI(client)
 	url := fmt.Sprintf("%s/event-types/%s", defaultNakadiURL, eventType.Name)
 
 	t.Run("fail connection error", func(t *testing.T) {
@@ -204,7 +204,7 @@ func TestHttpEventTypeManager_Delete(t *testing.T) {
 	name := "test-event.change"
 
 	client := &Client{nakadiURL: defaultNakadiURL, httpClient: http.DefaultClient}
-	api := NewEvents(client)
+	api := NewEventAPI(client)
 	url := fmt.Sprintf("%s/event-types/%s", defaultNakadiURL, name)
 
 	t.Run("fail connection error", func(t *testing.T) {

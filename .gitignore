@@ -3,6 +3,12 @@
 *.a
 *.so
 
+# Test profile
+profile.cov
+
+# Playground
+playground/*
+
 # Folders
 vendor
 doc

@@ -55,7 +55,7 @@ func TestHttpPublishAPI_Publish(t *testing.T) {
 	url := fmt.Sprintf("%s/event-types/%s/events", defaultNakadiURL, "test-event.undefined")
 
 	client := &Client{nakadiURL: defaultNakadiURL, httpClient: http.DefaultClient}
-	publishAPI := NewPublisher(client, "test-event.undefined")
+	publishAPI := NewPublishAPI(client, "test-event.undefined")
 
 	t.Run("fail to connect", func(t *testing.T) {
 		httpmock.Activate()
@@ -156,7 +156,7 @@ func TestHttpPublishAPI_PublishDataChangeEvent(t *testing.T) {
 	url := fmt.Sprintf("%s/event-types/%s/events", defaultNakadiURL, "test-event.data")
 
 	client := &Client{nakadiURL: defaultNakadiURL, httpClient: http.DefaultClient}
-	publishAPI := NewPublisher(client, "test-event.data")
+	publishAPI := NewPublishAPI(client, "test-event.data")
 
 	httpmock.Activate()
 	defer httpmock.DeactivateAndReset()
@@ -180,7 +180,7 @@ func TestHttpPublishAPI_PublishBusinessEvent(t *testing.T) {
 	url := fmt.Sprintf("%s/event-types/%s/events", defaultNakadiURL, "test-event.business")
 
 	client := &Client{nakadiURL: defaultNakadiURL, httpClient: http.DefaultClient}
-	publishAPI := NewPublisher(client, "test-event.business")
+	publishAPI := NewPublishAPI(client, "test-event.business")
 
 	httpmock.Activate()
 	defer httpmock.DeactivateAndReset()

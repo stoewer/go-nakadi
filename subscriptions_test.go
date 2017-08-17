@@ -26,7 +26,7 @@ func TestHttpSubscriptionAPI_Get(t *testing.T) {
 	serialized := helperLoadTestData(t, "subscription.json", expected)
 
 	client := &Client{nakadiURL: defaultNakadiURL, httpClient: http.DefaultClient}
-	api := NewSubscriptions(client)
+	api := NewSubscriptionAPI(client)
 	url := fmt.Sprintf("%s/subscriptions/%s", defaultNakadiURL, expected.ID)
 
 	t.Run("fail connection error", func(t *testing.T) {
@@ -86,7 +86,7 @@ func TestHttpSubscriptionAPI_List(t *testing.T) {
 	serialized := helperLoadTestData(t, "subscriptions.json", &expected)
 
 	client := &Client{nakadiURL: defaultNakadiURL, httpClient: http.DefaultClient}
-	api := NewSubscriptions(client)
+	api := NewSubscriptionAPI(client)
 	url := fmt.Sprintf("%s/subscriptions", defaultNakadiURL)
 
 	t.Run("fail connection error", func(t *testing.T) {
@@ -147,7 +147,7 @@ func TestHttpSubscriptionAPI_Create(t *testing.T) {
 	serialized := helperLoadTestData(t, "subscription.json", expected)
 
 	client := &Client{nakadiURL: defaultNakadiURL, httpClient: http.DefaultClient}
-	api := NewSubscriptions(client)
+	api := NewSubscriptionAPI(client)
 	url := fmt.Sprintf("%s/subscriptions", defaultNakadiURL)
 
 	t.Run("fail connection error", func(t *testing.T) {
@@ -210,7 +210,7 @@ func TestHttpSubscriptionAPI_Delete(t *testing.T) {
 	id := "7dd69d58-7f20-11e7-9748-133d6a0dbfb3"
 
 	client := &Client{nakadiURL: defaultNakadiURL, httpClient: http.DefaultClient}
-	api := NewSubscriptions(client)
+	api := NewSubscriptionAPI(client)
 	url := fmt.Sprintf("%s/subscriptions/%s", defaultNakadiURL, id)
 
 	t.Run("fail connection error", func(t *testing.T) {

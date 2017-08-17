@@ -41,11 +41,11 @@ type DataChangeEvent struct {
 	DataType string        `json:"data_type"`
 }
 
-// NewPublisher creates a new instance of the PublishAPI which can be used to publish Nakadi events.
-// As for all sub APIs of the `go-nakadi` package NewPublisher receives a configured Nakadi client.
+// NewPublishAPI creates a new instance of the PublishAPI which can be used to publish Nakadi events.
+// As for all sub APIs of the `go-nakadi` package NewPublishAPI receives a configured Nakadi client.
 // Furthermore the name of the event type must be provided.
-func NewPublisher(client *Client, eventType string) PublishAPI {
-	return &httpPublishAPI{
+func NewPublishAPI(client *Client, eventType string) *PublishAPI {
+	return &PublishAPI{
 		client:     client,
 		publishURL: fmt.Sprintf("%s/event-types/%s/events", client.nakadiURL, eventType)}
 }
@@ -53,51 +53,24 @@ func NewPublisher(client *Client, eventType string) PublishAPI {
 // PublishAPI is a sub API for publishing Nakadi events. All publish methods emit events as a single batch. If
 // a publish method returns an error, the caller should check whether the error is a BatchItemsError in order to
 // verify which events of a batch have been published.
-type PublishAPI interface {
-	// PublishDataChangeEvent emits a batch of data change events.
-	PublishDataChangeEvent(events []DataChangeEvent) error
-
-	// PublishBusinessEvent emits a batch of business events.
-	PublishBusinessEvent(events []BusinessEvent) error
-
-	// Publish is used to emit a batch of undefined events. But can also be used to publish data change or
-	// business events.
-	Publish(events interface{}) error
-}
-
-// BatchItemsError represents an error which contains information about the publishing status of each single
-// event in a batch.
-type BatchItemsError []BatchItemResponse
-
-// Error implements the error interface for BatchItemsError.
-func (err BatchItemsError) Error() string {
-	return "one or many events may have not been published"
-}
-
-// BatchItemResponse if a batch is only published partially each batch item response contains information
-// about whether a singe event was successfully published or not.
-type BatchItemResponse struct {
-	EID              string `json:"eid"`
-	PublishingStatus string `json:"publishing_status"`
-	Step             string `json:"step"`
-	Detail           string `json:"detail"`
-}
-
-// httpPublishAPI is the actual implementation of the PublishAPI
-type httpPublishAPI struct {
+type PublishAPI struct {
 	client     *Client
 	publishURL string
 }
 
-func (p *httpPublishAPI) PublishDataChangeEvent(events []DataChangeEvent) error {
+// PublishDataChangeEvent emits a batch of data change events.
+func (p *PublishAPI) PublishDataChangeEvent(events []DataChangeEvent) error {
 	return p.Publish(events)
 }
 
-func (p *httpPublishAPI) PublishBusinessEvent(events []BusinessEvent) error {
+// PublishBusinessEvent emits a batch of business events.
+func (p *PublishAPI) PublishBusinessEvent(events []BusinessEvent) error {
 	return p.Publish(events)
 }
 
-func (p *httpPublishAPI) Publish(events interface{}) error {
+// Publish is used to emit a batch of undefined events. But can also be used to publish data change or
+// business events.
+func (p *PublishAPI) Publish(events interface{}) error {
 	response, err := p.client.httpPOST(p.publishURL, events)
 	if err != nil {
 		return errors.Wrap(err, "unable to publish event")
@@ -123,4 +96,22 @@ func (p *httpPublishAPI) Publish(events interface{}) error {
 	}
 
 	return nil
+}
+
+// BatchItemResponse if a batch is only published partially each batch item response contains information
+// about whether a singe event was successfully published or not.
+type BatchItemResponse struct {
+	EID              string `json:"eid"`
+	PublishingStatus string `json:"publishing_status"`
+	Step             string `json:"step"`
+	Detail           string `json:"detail"`
+}
+
+// BatchItemsError represents an error which contains information about the publishing status of each single
+// event in a batch.
+type BatchItemsError []BatchItemResponse
+
+// Error implements the error interface for BatchItemsError.
+func (err BatchItemsError) Error() string {
+	return "one or many events may have not been published"
 }
