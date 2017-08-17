@@ -7,7 +7,7 @@
 profile.cov
 
 # Playground
-playground/*
+playground
 
 # Folders
 vendor
