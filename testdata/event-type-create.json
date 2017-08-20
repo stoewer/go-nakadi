@@ -4,7 +4,7 @@
   "category": "data",
   "partition_strategy": "hash",
   "schema": {
-    "type": "json-schema",
+    "type": "json_schema",
     "schema": "{\"type\":\"object\",\"test\":\"test\",\"additionalProperties\":true}"
   },
   "partition_key_fields": [
