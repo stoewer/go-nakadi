@@ -140,6 +140,66 @@ func TestHttpEventTypeManager_List(t *testing.T) {
 	})
 }
 
+func TestHttpEventTypeManager_Create(t *testing.T) {
+	eventType := &EventType{}
+	serialized := helperLoadTestData(t, "event-type-complete.json", eventType)
+
+	client := &Client{
+		nakadiURL:     defaultNakadiURL,
+		httpClient:    http.DefaultClient,
+		tokenProvider: func() (string, error) { return "token", nil }}
+	api := NewEventAPI(client)
+	url := fmt.Sprintf("%s/event-types", defaultNakadiURL)
+
+	t.Run("fail connection error", func(t *testing.T) {
+		httpmock.Activate()
+		defer httpmock.DeactivateAndReset()
+		httpmock.RegisterResponder("POST", url, httpmock.NewErrorResponder(assert.AnError))
+
+		_, err := api.Create(eventType)
+		require.Error(t, err)
+		assert.Regexp(t, assert.AnError, err)
+	})
+
+	t.Run("fail with problem", func(t *testing.T) {
+		problem := `{"detail": "not valid"}`
+		httpmock.Activate()
+		defer httpmock.DeactivateAndReset()
+		httpmock.RegisterResponder("POST", url, httpmock.NewStringResponder(http.StatusConflict, problem))
+
+		_, err := api.Create(eventType)
+		require.Error(t, err)
+		assert.Regexp(t, "not valid", err)
+	})
+
+	t.Run("fail decode body", func(t *testing.T) {
+		httpmock.Activate()
+		defer httpmock.DeactivateAndReset()
+		httpmock.RegisterResponder("POST", url, httpmock.NewStringResponder(http.StatusCreated, ""))
+
+		_, err := api.Create(eventType)
+		require.Error(t, err)
+		assert.Regexp(t, "unable to decode response body", err)
+	})
+
+	t.Run("success", func(t *testing.T) {
+		httpmock.Activate()
+		defer httpmock.DeactivateAndReset()
+
+		httpmock.RegisterResponder("POST", url, httpmock.Responder(func(r *http.Request) (*http.Response, error) {
+			uploaded := &EventType{}
+			err := json.NewDecoder(r.Body).Decode(uploaded)
+			require.NoError(t, err)
+			assert.Equal(t, eventType, uploaded)
+			return httpmock.NewBytesResponse(http.StatusCreated, serialized), nil
+		}))
+
+		requested, err := api.Create(eventType)
+		require.NoError(t, err)
+		assert.Equal(t, eventType, requested)
+	})
+}
+
 func TestHttpEventTypeManager_Save(t *testing.T) {
 	eventType := &EventType{}
 	serialized := helperLoadTestData(t, "event-type-complete.json", eventType)
@@ -156,7 +216,7 @@ func TestHttpEventTypeManager_Save(t *testing.T) {
 		defer httpmock.DeactivateAndReset()
 		httpmock.RegisterResponder("PUT", url, httpmock.NewErrorResponder(assert.AnError))
 
-		_, err := api.Save(eventType)
+		_, err := api.Update(eventType)
 		require.Error(t, err)
 		assert.Regexp(t, assert.AnError, err)
 	})
@@ -167,7 +227,7 @@ func TestHttpEventTypeManager_Save(t *testing.T) {
 		defer httpmock.DeactivateAndReset()
 		httpmock.RegisterResponder("PUT", url, httpmock.NewStringResponder(http.StatusNotFound, problem))
 
-		_, err := api.Save(eventType)
+		_, err := api.Update(eventType)
 		require.Error(t, err)
 		assert.Regexp(t, "not found", err)
 	})
@@ -177,7 +237,7 @@ func TestHttpEventTypeManager_Save(t *testing.T) {
 		defer httpmock.DeactivateAndReset()
 		httpmock.RegisterResponder("PUT", url, httpmock.NewStringResponder(http.StatusOK, ""))
 
-		_, err := api.Save(eventType)
+		_, err := api.Update(eventType)
 		require.Error(t, err)
 		assert.Regexp(t, "unable to decode response body", err)
 	})
@@ -194,7 +254,7 @@ func TestHttpEventTypeManager_Save(t *testing.T) {
 			return httpmock.NewBytesResponse(http.StatusOK, serialized), nil
 		}))
 
-		requested, err := api.Save(eventType)
+		requested, err := api.Update(eventType)
 		require.NoError(t, err)
 		assert.Equal(t, eventType, requested)
 	})
