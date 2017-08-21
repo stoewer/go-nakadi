@@ -61,14 +61,15 @@ func NewStream(client *Client, subscriptionID string, options *StreamOptions) *S
 		if copyOptions.CommitMaxElapsedTime == 0 {
 			copyOptions.CommitMaxElapsedTime = defaultStreamOptions.CommitMaxElapsedTime
 		}
-		if copyOptions.NotifyErr == nil {
-			copyOptions.NotifyErr = func(_ error, _ time.Duration) {}
-		}
-		if copyOptions.NotifyOK == nil {
-			copyOptions.NotifyOK = func() {}
-		}
 	} else {
 		copyOptions = defaultStreamOptions
+	}
+
+	if copyOptions.NotifyErr == nil {
+		copyOptions.NotifyErr = func(_ error, _ time.Duration) {}
+	}
+	if copyOptions.NotifyOK == nil {
+		copyOptions.NotifyOK = func() {}
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())

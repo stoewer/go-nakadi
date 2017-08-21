@@ -82,8 +82,10 @@ func TestHttpSubscriptionAPI_Get(t *testing.T) {
 }
 
 func TestHttpSubscriptionAPI_List(t *testing.T) {
-	expected := []*Subscription{}
-	serialized := helperLoadTestData(t, "subscriptions.json", &expected)
+	expected := struct {
+		Items []*Subscription `json:"items"`
+	}{}
+	helperLoadTestData(t, "subscriptions.json", &expected.Items)
 
 	client := &Client{nakadiURL: defaultNakadiURL, httpClient: http.DefaultClient}
 	api := NewSubscriptionAPI(client)
@@ -133,11 +135,13 @@ func TestHttpSubscriptionAPI_List(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
 		httpmock.Activate()
 		defer httpmock.DeactivateAndReset()
-		httpmock.RegisterResponder("GET", url, httpmock.NewBytesResponder(http.StatusOK, serialized))
+		responder, err := httpmock.NewJsonResponder(http.StatusOK, expected)
+		require.NoError(t, err)
+		httpmock.RegisterResponder("GET", url, responder)
 
 		requested, err := api.List()
 		require.NoError(t, err)
-		assert.Equal(t, expected, requested)
+		assert.Equal(t, expected.Items, requested)
 	})
 }
 
