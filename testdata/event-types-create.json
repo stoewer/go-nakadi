@@ -3,10 +3,13 @@
     "name": "test-event.change",
     "owning_application": "test-application",
     "category": "data",
+    "enrichment_strategies": [
+      "metadata_enrichment"
+    ],
     "partition_strategy": "hash",
     "schema": {
       "type": "json_schema",
-      "schema": "{\"type\":\"object\",\"test\":\"test\",\"additionalProperties\":true}"
+      "schema": "{\"properties\":{\"test\":{\"type\":\"string\"}},\"additionalProperties\":true}"
     },
     "partition_key_fields": [
       "test"
@@ -28,7 +31,7 @@
     "partition_strategy": "random",
     "schema": {
       "type": "json_schema",
-      "schema": "{\"type\":\"object\",\"test\":\"test\",\"additionalProperties\":true}"
+      "schema": "{\"properties\":{\"test\":{\"type\":\"string\"}},\"additionalProperties\":true}"
     },
     "partition_key_fields": [],
     "default_statistics": {

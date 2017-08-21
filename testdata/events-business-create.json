@@ -3,7 +3,7 @@
     "metadata": {
       "eid": "0d86a6e4-7e06-11e7-9821-33fb3d356151",
       "occurred_at": "2017-08-11T19:51:57+02:00",
-      "event_type": "test-event.business"
+      "event_type": "test-event2.business"
     },
     "order_number": "1234"
   },
@@ -11,7 +11,7 @@
     "metadata": {
       "eid": "d61dd764-7ebd-11e7-99fe-370aa92c6d19",
       "occurred_at": "2017-08-11T19:52:44+02:00",
-      "event_type": "test-event.business"
+      "event_type": "test-event2.business"
     },
     "order_number": "1234"
   }
