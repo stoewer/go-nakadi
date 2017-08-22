@@ -33,12 +33,14 @@ type SubscriptionAPI struct {
 
 // List returns all available subscriptions.
 func (s *SubscriptionAPI) List() ([]*Subscription, error) {
-	subscriptions := []*Subscription{}
+	subscriptions := struct {
+		Items []*Subscription `json:"items"`
+	}{}
 	err := s.client.httpGET(s.subBaseURL(), &subscriptions, "unable to request subscriptions")
 	if err != nil {
 		return nil, err
 	}
-	return subscriptions, nil
+	return subscriptions.Items, nil
 }
 
 // Get obtains a single subscription identified by its ID.

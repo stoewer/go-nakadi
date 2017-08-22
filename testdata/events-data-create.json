@@ -3,7 +3,7 @@
     "metadata": {
       "eid": "9aabcd94-7ebd-11e7-898b-97df92934aa5",
       "occurred_at": "2017-08-10T22:01:45.76480223+02:00",
-      "event_type": "test-event.data"
+      "event_type": "test-event.change"
     },
     "data": {
       "test": "test one"
@@ -15,7 +15,7 @@
     "metadata": {
       "eid": "9bb881e6-7ebd-11e7-914f-1b844d3d9755",
       "occurred_at": "2017-08-10T22:01:45.76480223+02:00",
-      "event_type": "test-event.data"
+      "event_type": "test-event.change"
     },
     "data": {
       "test": "test two"

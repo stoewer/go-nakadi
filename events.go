@@ -79,11 +79,31 @@ func (e *EventAPI) Get(name string) (*EventType, error) {
 	return eventType, nil
 }
 
-// Save creates or updates the provided event type.
-func (e *EventAPI) Save(eventType *EventType) (*EventType, error) {
+// Create saves a new event type.
+func (e *EventAPI) Create(eventType *EventType) error {
+	response, err := e.client.httpPOST(e.eventBaseURL(), eventType)
+	if err != nil {
+		return errors.Wrap(err, "unable to create event type")
+	}
+	defer response.Body.Close()
+
+	if response.StatusCode != http.StatusCreated {
+		problem := problemJSON{}
+		err := json.NewDecoder(response.Body).Decode(&problem)
+		if err != nil {
+			return errors.Wrap(err, "unable to decode response body")
+		}
+		return errors.Errorf("unable to create event type: %s", problem.Detail)
+	}
+
+	return nil
+}
+
+// Update updates an existing event type.
+func (e *EventAPI) Update(eventType *EventType) error {
 	response, err := e.client.httpPUT(e.eventURL(eventType.Name), eventType)
 	if err != nil {
-		return nil, errors.Wrap(err, "unable to save event type")
+		return errors.Wrap(err, "unable to update event type")
 	}
 	defer response.Body.Close()
 
@@ -91,18 +111,12 @@ func (e *EventAPI) Save(eventType *EventType) (*EventType, error) {
 		problem := problemJSON{}
 		err := json.NewDecoder(response.Body).Decode(&problem)
 		if err != nil {
-			return nil, errors.Wrap(err, "unable to decode response body")
+			return errors.Wrap(err, "unable to decode response body")
 		}
-		return nil, errors.Errorf("unable to save event type: %s", problem.Detail)
+		return errors.Errorf("unable to update event type: %s", problem.Detail)
 	}
 
-	eventType = &EventType{}
-	err = json.NewDecoder(response.Body).Decode(eventType)
-	if err != nil {
-		return nil, errors.Wrap(err, "unable to decode response body")
-	}
-
-	return eventType, nil
+	return nil
 }
 
 // Delete removes an event type.

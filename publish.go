@@ -13,13 +13,13 @@ import (
 // EventMetadata represents the meta information which comes along with all Nakadi events. For publishing
 // purposes only the fields eid and occurred_at must be present.
 type EventMetadata struct {
-	EID        string    `json:"eid"`
-	OccurredAt time.Time `json:"occurred_at"`
-	EventType  string    `json:"event_type,omitempty"`
-	Partition  string    `json:"partition,omitempty"`
-	ParentEIDs []string  `json:"parent_eids,omitempty"`
-	FlowID     string    `json:"flow_id,omitempty"`
-	ReceivedAt time.Time `json:"received_at,omitempty"`
+	EID        string     `json:"eid"`
+	OccurredAt time.Time  `json:"occurred_at"`
+	EventType  string     `json:"event_type,omitempty"`
+	Partition  string     `json:"partition,omitempty"`
+	ParentEIDs []string   `json:"parent_eids,omitempty"`
+	FlowID     string     `json:"flow_id,omitempty"`
+	ReceivedAt *time.Time `json:"received_at,omitempty"`
 }
 
 // UndefinedEvent can be embedded in structs representing Nakadi events from the event category "undefined".

@@ -1,9 +1,39 @@
+sudo: required
+
 language: go
 
 go:
 - 1.8
 
+services:
+  - docker
+
+addons:
+  hosts:
+  - localhost
+  hostname: localhost
+
+env:
+  global:
+  - DOCKER_COMPOSE_VERSION="1.7.1"
+
+before_cache:
+  - rm -f  $HOME/.gradle/caches/modules-2/modules-2.lock
+  - rm -fr $HOME/.gradle/caches/*/plugin-resolution/
+
+cache:
+  directories:
+    - $HOME/.gradle/caches/
+    - $HOME/.gradle/wrapper/
+
+before_install:
+- docker --version
+- curl -L https://github.com/docker/compose/releases/download/${DOCKER_COMPOSE_VERSION}/docker-compose-`uname -s`-`uname -m` > docker-compose
+- chmod +x docker-compose
+- sudo mv docker-compose /usr/local/bin
+
 install:
+- git clone https://github.com/zalando/nakadi.git nakadi
 - go get -v github.com/pkg/errors
 - go get -v github.com/golang/lint/golint
 - go get -v github.com/mattn/goveralls
@@ -12,10 +42,17 @@ install:
 - go get -v github.com/pkg/errors
 - go get -v gopkg.in/jarcoal/httpmock.v1
 
+before_script:
+- sudo /etc/init.d/postgresql stop
+- (cd nakadi && ./gradlew startNakadi)
+
 script:
-- go vet .
+- go vet -race .
 - golint -set_exit_status .
-- go test -v -covermode=count -coverprofile=profile.cov .
+- go test -v -tags=integration -covermode=count -coverprofile=profile.cov .
+
+after_script:
+- (cd nakadi && ./gradlew stopNakadi)
 
 after_success:
 - goveralls -coverprofile=profile.cov -service=travis-ci
