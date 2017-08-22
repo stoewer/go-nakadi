@@ -21,6 +21,9 @@ func TestEventType_Marshal(t *testing.T) {
 }
 
 func TestEventAPI_Get(t *testing.T) {
+	httpmock.Activate()
+	defer httpmock.DeactivateAndReset()
+
 	expected := &EventType{}
 	serialized := helperLoadTestData(t, "event-type-complete.json", expected)
 
@@ -29,8 +32,6 @@ func TestEventAPI_Get(t *testing.T) {
 	url := fmt.Sprintf("%s/event-types/%s", defaultNakadiURL, expected.Name)
 
 	t.Run("fail connection error", func(t *testing.T) {
-		httpmock.Activate()
-		defer httpmock.DeactivateAndReset()
 		httpmock.RegisterResponder("GET", url, httpmock.NewErrorResponder(assert.AnError))
 
 		_, err := api.Get(expected.Name)
@@ -39,8 +40,6 @@ func TestEventAPI_Get(t *testing.T) {
 	})
 
 	t.Run("fail decode error", func(t *testing.T) {
-		httpmock.Activate()
-		defer httpmock.DeactivateAndReset()
 		httpmock.RegisterResponder("GET", url, httpmock.NewStringResponder(http.StatusNotFound, ""))
 
 		_, err := api.Get(expected.Name)
@@ -50,8 +49,6 @@ func TestEventAPI_Get(t *testing.T) {
 
 	t.Run("fail with problem", func(t *testing.T) {
 		problem := `{"detail": "not found"}`
-		httpmock.Activate()
-		defer httpmock.DeactivateAndReset()
 		httpmock.RegisterResponder("GET", url, httpmock.NewStringResponder(http.StatusNotFound, problem))
 
 		_, err := api.Get(expected.Name)
@@ -60,8 +57,6 @@ func TestEventAPI_Get(t *testing.T) {
 	})
 
 	t.Run("fail decode response", func(t *testing.T) {
-		httpmock.Activate()
-		defer httpmock.DeactivateAndReset()
 		httpmock.RegisterResponder("GET", url, httpmock.NewStringResponder(http.StatusOK, ""))
 
 		_, err := api.Get(expected.Name)
@@ -70,8 +65,6 @@ func TestEventAPI_Get(t *testing.T) {
 	})
 
 	t.Run("success", func(t *testing.T) {
-		httpmock.Activate()
-		defer httpmock.DeactivateAndReset()
 		httpmock.RegisterResponder("GET", url, httpmock.NewBytesResponder(http.StatusOK, serialized))
 
 		requested, err := api.Get(expected.Name)
@@ -81,6 +74,9 @@ func TestEventAPI_Get(t *testing.T) {
 }
 
 func TestEventAPI_List(t *testing.T) {
+	httpmock.Activate()
+	defer httpmock.DeactivateAndReset()
+
 	expected := []*EventType{}
 	serialized := helperLoadTestData(t, "event-types-complete.json", &expected)
 
@@ -89,8 +85,6 @@ func TestEventAPI_List(t *testing.T) {
 	url := fmt.Sprintf("%s/event-types", defaultNakadiURL)
 
 	t.Run("fail connection error", func(t *testing.T) {
-		httpmock.Activate()
-		defer httpmock.DeactivateAndReset()
 		httpmock.RegisterResponder("GET", url, httpmock.NewErrorResponder(assert.AnError))
 
 		_, err := api.List()
@@ -99,8 +93,6 @@ func TestEventAPI_List(t *testing.T) {
 	})
 
 	t.Run("fail decode error", func(t *testing.T) {
-		httpmock.Activate()
-		defer httpmock.DeactivateAndReset()
 		httpmock.RegisterResponder("GET", url, httpmock.NewStringResponder(http.StatusInternalServerError, ""))
 
 		_, err := api.List()
@@ -110,8 +102,6 @@ func TestEventAPI_List(t *testing.T) {
 
 	t.Run("fail with problem", func(t *testing.T) {
 		problem := `{"detail": "not found"}`
-		httpmock.Activate()
-		defer httpmock.DeactivateAndReset()
 		httpmock.RegisterResponder("GET", url, httpmock.NewStringResponder(http.StatusInternalServerError, problem))
 
 		_, err := api.List()
@@ -120,8 +110,6 @@ func TestEventAPI_List(t *testing.T) {
 	})
 
 	t.Run("fail decode response", func(t *testing.T) {
-		httpmock.Activate()
-		defer httpmock.DeactivateAndReset()
 		httpmock.RegisterResponder("GET", url, httpmock.NewStringResponder(http.StatusOK, ""))
 
 		_, err := api.List()
@@ -130,8 +118,6 @@ func TestEventAPI_List(t *testing.T) {
 	})
 
 	t.Run("success", func(t *testing.T) {
-		httpmock.Activate()
-		defer httpmock.DeactivateAndReset()
 		httpmock.RegisterResponder("GET", url, httpmock.NewBytesResponder(http.StatusOK, serialized))
 
 		requested, err := api.List()
@@ -141,6 +127,9 @@ func TestEventAPI_List(t *testing.T) {
 }
 
 func TestEventAPI_Create(t *testing.T) {
+	httpmock.Activate()
+	defer httpmock.DeactivateAndReset()
+
 	eventType := &EventType{}
 	helperLoadTestData(t, "event-type-complete.json", eventType)
 
@@ -152,8 +141,6 @@ func TestEventAPI_Create(t *testing.T) {
 	url := fmt.Sprintf("%s/event-types", defaultNakadiURL)
 
 	t.Run("fail connection error", func(t *testing.T) {
-		httpmock.Activate()
-		defer httpmock.DeactivateAndReset()
 		httpmock.RegisterResponder("POST", url, httpmock.NewErrorResponder(assert.AnError))
 
 		err := api.Create(eventType)
@@ -163,8 +150,6 @@ func TestEventAPI_Create(t *testing.T) {
 
 	t.Run("fail with problem", func(t *testing.T) {
 		problem := `{"detail": "not valid"}`
-		httpmock.Activate()
-		defer httpmock.DeactivateAndReset()
 		httpmock.RegisterResponder("POST", url, httpmock.NewStringResponder(http.StatusConflict, problem))
 
 		err := api.Create(eventType)
@@ -173,9 +158,6 @@ func TestEventAPI_Create(t *testing.T) {
 	})
 
 	t.Run("success", func(t *testing.T) {
-		httpmock.Activate()
-		defer httpmock.DeactivateAndReset()
-
 		httpmock.RegisterResponder("POST", url, httpmock.Responder(func(r *http.Request) (*http.Response, error) {
 			uploaded := &EventType{}
 			err := json.NewDecoder(r.Body).Decode(uploaded)
@@ -190,6 +172,9 @@ func TestEventAPI_Create(t *testing.T) {
 }
 
 func TestEventAPI_Save(t *testing.T) {
+	httpmock.Activate()
+	defer httpmock.DeactivateAndReset()
+
 	eventType := &EventType{}
 	helperLoadTestData(t, "event-type-complete.json", eventType)
 
@@ -201,8 +186,6 @@ func TestEventAPI_Save(t *testing.T) {
 	url := fmt.Sprintf("%s/event-types/%s", defaultNakadiURL, eventType.Name)
 
 	t.Run("fail connection error", func(t *testing.T) {
-		httpmock.Activate()
-		defer httpmock.DeactivateAndReset()
 		httpmock.RegisterResponder("PUT", url, httpmock.NewErrorResponder(assert.AnError))
 
 		err := api.Update(eventType)
@@ -212,8 +195,6 @@ func TestEventAPI_Save(t *testing.T) {
 
 	t.Run("fail with problem", func(t *testing.T) {
 		problem := `{"detail": "not found"}`
-		httpmock.Activate()
-		defer httpmock.DeactivateAndReset()
 		httpmock.RegisterResponder("PUT", url, httpmock.NewStringResponder(http.StatusNotFound, problem))
 
 		err := api.Update(eventType)
@@ -222,9 +203,6 @@ func TestEventAPI_Save(t *testing.T) {
 	})
 
 	t.Run("success", func(t *testing.T) {
-		httpmock.Activate()
-		defer httpmock.DeactivateAndReset()
-
 		httpmock.RegisterResponder("PUT", url, httpmock.Responder(func(r *http.Request) (*http.Response, error) {
 			uploaded := &EventType{}
 			err := json.NewDecoder(r.Body).Decode(uploaded)
@@ -239,6 +217,9 @@ func TestEventAPI_Save(t *testing.T) {
 }
 
 func TestEventAPI_Delete(t *testing.T) {
+	httpmock.Activate()
+	defer httpmock.DeactivateAndReset()
+
 	name := "test-event.change"
 
 	client := &Client{nakadiURL: defaultNakadiURL, httpClient: http.DefaultClient}
@@ -246,8 +227,6 @@ func TestEventAPI_Delete(t *testing.T) {
 	url := fmt.Sprintf("%s/event-types/%s", defaultNakadiURL, name)
 
 	t.Run("fail connection error", func(t *testing.T) {
-		httpmock.Activate()
-		defer httpmock.DeactivateAndReset()
 		httpmock.RegisterResponder("DELETE", url, httpmock.NewErrorResponder(assert.AnError))
 
 		err := api.Delete(name)
@@ -256,8 +235,6 @@ func TestEventAPI_Delete(t *testing.T) {
 	})
 
 	t.Run("fail decode body", func(t *testing.T) {
-		httpmock.Activate()
-		defer httpmock.DeactivateAndReset()
 		httpmock.RegisterResponder("DELETE", url, httpmock.NewStringResponder(http.StatusNotFound, ""))
 
 		err := api.Delete(name)
@@ -267,8 +244,6 @@ func TestEventAPI_Delete(t *testing.T) {
 
 	t.Run("fail with problem", func(t *testing.T) {
 		problem := `{"detail": "not found"}`
-		httpmock.Activate()
-		defer httpmock.DeactivateAndReset()
 		httpmock.RegisterResponder("DELETE", url, httpmock.NewStringResponder(http.StatusNotFound, problem))
 
 		err := api.Delete(name)
@@ -277,8 +252,6 @@ func TestEventAPI_Delete(t *testing.T) {
 	})
 
 	t.Run("success", func(t *testing.T) {
-		httpmock.Activate()
-		defer httpmock.DeactivateAndReset()
 		httpmock.RegisterResponder("DELETE", url, httpmock.NewStringResponder(http.StatusNoContent, ""))
 
 		err := api.Delete(name)

@@ -22,6 +22,9 @@ func TestSubscription_Marshal(t *testing.T) {
 }
 
 func TestSubscriptionAPI_Get(t *testing.T) {
+	httpmock.Activate()
+	defer httpmock.DeactivateAndReset()
+
 	expected := &Subscription{}
 	serialized := helperLoadTestData(t, "subscription.json", expected)
 
@@ -30,8 +33,6 @@ func TestSubscriptionAPI_Get(t *testing.T) {
 	url := fmt.Sprintf("%s/subscriptions/%s", defaultNakadiURL, expected.ID)
 
 	t.Run("fail connection error", func(t *testing.T) {
-		httpmock.Activate()
-		defer httpmock.DeactivateAndReset()
 		httpmock.RegisterResponder("GET", url, httpmock.NewErrorResponder(assert.AnError))
 
 		_, err := api.Get(expected.ID)
@@ -40,8 +41,6 @@ func TestSubscriptionAPI_Get(t *testing.T) {
 	})
 
 	t.Run("fail decode error", func(t *testing.T) {
-		httpmock.Activate()
-		defer httpmock.DeactivateAndReset()
 		httpmock.RegisterResponder("GET", url, httpmock.NewStringResponder(http.StatusNotFound, ""))
 
 		_, err := api.Get(expected.ID)
@@ -51,8 +50,6 @@ func TestSubscriptionAPI_Get(t *testing.T) {
 
 	t.Run("fail with problem", func(t *testing.T) {
 		problem := `{"detail": "not found"}`
-		httpmock.Activate()
-		defer httpmock.DeactivateAndReset()
 		httpmock.RegisterResponder("GET", url, httpmock.NewStringResponder(http.StatusNotFound, problem))
 
 		_, err := api.Get(expected.ID)
@@ -61,8 +58,6 @@ func TestSubscriptionAPI_Get(t *testing.T) {
 	})
 
 	t.Run("fail decode response", func(t *testing.T) {
-		httpmock.Activate()
-		defer httpmock.DeactivateAndReset()
 		httpmock.RegisterResponder("GET", url, httpmock.NewStringResponder(http.StatusOK, ""))
 
 		_, err := api.Get(expected.ID)
@@ -71,8 +66,6 @@ func TestSubscriptionAPI_Get(t *testing.T) {
 	})
 
 	t.Run("success", func(t *testing.T) {
-		httpmock.Activate()
-		defer httpmock.DeactivateAndReset()
 		httpmock.RegisterResponder("GET", url, httpmock.NewBytesResponder(http.StatusOK, serialized))
 
 		requested, err := api.Get(expected.ID)
@@ -82,6 +75,9 @@ func TestSubscriptionAPI_Get(t *testing.T) {
 }
 
 func TestSubscriptionAPI_List(t *testing.T) {
+	httpmock.Activate()
+	defer httpmock.DeactivateAndReset()
+
 	expected := struct {
 		Items []*Subscription `json:"items"`
 	}{}
@@ -92,8 +88,6 @@ func TestSubscriptionAPI_List(t *testing.T) {
 	url := fmt.Sprintf("%s/subscriptions", defaultNakadiURL)
 
 	t.Run("fail connection error", func(t *testing.T) {
-		httpmock.Activate()
-		defer httpmock.DeactivateAndReset()
 		httpmock.RegisterResponder("GET", url, httpmock.NewErrorResponder(assert.AnError))
 
 		_, err := api.List()
@@ -102,8 +96,6 @@ func TestSubscriptionAPI_List(t *testing.T) {
 	})
 
 	t.Run("fail decode error", func(t *testing.T) {
-		httpmock.Activate()
-		defer httpmock.DeactivateAndReset()
 		httpmock.RegisterResponder("GET", url, httpmock.NewStringResponder(http.StatusInternalServerError, ""))
 
 		_, err := api.List()
@@ -113,8 +105,6 @@ func TestSubscriptionAPI_List(t *testing.T) {
 
 	t.Run("fail with problem", func(t *testing.T) {
 		problem := `{"detail": "not found"}`
-		httpmock.Activate()
-		defer httpmock.DeactivateAndReset()
 		httpmock.RegisterResponder("GET", url, httpmock.NewStringResponder(http.StatusInternalServerError, problem))
 
 		_, err := api.List()
@@ -123,8 +113,6 @@ func TestSubscriptionAPI_List(t *testing.T) {
 	})
 
 	t.Run("fail decode response", func(t *testing.T) {
-		httpmock.Activate()
-		defer httpmock.DeactivateAndReset()
 		httpmock.RegisterResponder("GET", url, httpmock.NewStringResponder(http.StatusOK, ""))
 
 		_, err := api.List()
@@ -133,8 +121,6 @@ func TestSubscriptionAPI_List(t *testing.T) {
 	})
 
 	t.Run("success", func(t *testing.T) {
-		httpmock.Activate()
-		defer httpmock.DeactivateAndReset()
 		responder, err := httpmock.NewJsonResponder(http.StatusOK, expected)
 		require.NoError(t, err)
 		httpmock.RegisterResponder("GET", url, responder)
@@ -146,6 +132,9 @@ func TestSubscriptionAPI_List(t *testing.T) {
 }
 
 func TestSubscriptionAPI_Create(t *testing.T) {
+	httpmock.Activate()
+	defer httpmock.DeactivateAndReset()
+
 	subscription := &Subscription{OwningApplication: "test-app", EventTypes: []string{"test-event.data"}}
 	expected := &Subscription{}
 	serialized := helperLoadTestData(t, "subscription.json", expected)
@@ -155,8 +144,6 @@ func TestSubscriptionAPI_Create(t *testing.T) {
 	url := fmt.Sprintf("%s/subscriptions", defaultNakadiURL)
 
 	t.Run("fail connection error", func(t *testing.T) {
-		httpmock.Activate()
-		defer httpmock.DeactivateAndReset()
 		httpmock.RegisterResponder("POST", url, httpmock.NewErrorResponder(assert.AnError))
 
 		_, err := api.Create(subscription)
@@ -166,8 +153,6 @@ func TestSubscriptionAPI_Create(t *testing.T) {
 
 	t.Run("fail with problem", func(t *testing.T) {
 		problem := `{"detail": "not authorized"}`
-		httpmock.Activate()
-		defer httpmock.DeactivateAndReset()
 		httpmock.RegisterResponder("POST", url, httpmock.NewStringResponder(http.StatusUnauthorized, problem))
 
 		_, err := api.Create(subscription)
@@ -176,9 +161,6 @@ func TestSubscriptionAPI_Create(t *testing.T) {
 	})
 
 	t.Run("fail decode body", func(t *testing.T) {
-		httpmock.Activate()
-		defer httpmock.DeactivateAndReset()
-
 		httpmock.RegisterResponder("POST", url, httpmock.NewStringResponder(http.StatusUnauthorized, ""))
 
 		_, err := api.Create(subscription)
@@ -193,9 +175,6 @@ func TestSubscriptionAPI_Create(t *testing.T) {
 	})
 
 	t.Run("success", func(t *testing.T) {
-		httpmock.Activate()
-		defer httpmock.DeactivateAndReset()
-
 		httpmock.RegisterResponder("POST", url, httpmock.Responder(func(r *http.Request) (*http.Response, error) {
 			uploaded := &Subscription{}
 			err := json.NewDecoder(r.Body).Decode(uploaded)
@@ -211,6 +190,9 @@ func TestSubscriptionAPI_Create(t *testing.T) {
 }
 
 func TestSubscriptionAPI_Delete(t *testing.T) {
+	httpmock.Activate()
+	defer httpmock.DeactivateAndReset()
+
 	id := "7dd69d58-7f20-11e7-9748-133d6a0dbfb3"
 
 	client := &Client{nakadiURL: defaultNakadiURL, httpClient: http.DefaultClient}
@@ -218,8 +200,6 @@ func TestSubscriptionAPI_Delete(t *testing.T) {
 	url := fmt.Sprintf("%s/subscriptions/%s", defaultNakadiURL, id)
 
 	t.Run("fail connection error", func(t *testing.T) {
-		httpmock.Activate()
-		defer httpmock.DeactivateAndReset()
 		httpmock.RegisterResponder("DELETE", url, httpmock.NewErrorResponder(assert.AnError))
 
 		err := api.Delete(id)
@@ -228,8 +208,6 @@ func TestSubscriptionAPI_Delete(t *testing.T) {
 	})
 
 	t.Run("fail decode body", func(t *testing.T) {
-		httpmock.Activate()
-		defer httpmock.DeactivateAndReset()
 		httpmock.RegisterResponder("DELETE", url, httpmock.NewStringResponder(http.StatusNotFound, ""))
 
 		err := api.Delete(id)
@@ -239,8 +217,6 @@ func TestSubscriptionAPI_Delete(t *testing.T) {
 
 	t.Run("fail with problem", func(t *testing.T) {
 		problem := `{"detail": "not found"}`
-		httpmock.Activate()
-		defer httpmock.DeactivateAndReset()
 		httpmock.RegisterResponder("DELETE", url, httpmock.NewStringResponder(http.StatusNotFound, problem))
 
 		err := api.Delete(id)
@@ -249,8 +225,6 @@ func TestSubscriptionAPI_Delete(t *testing.T) {
 	})
 
 	t.Run("success", func(t *testing.T) {
-		httpmock.Activate()
-		defer httpmock.DeactivateAndReset()
 		httpmock.RegisterResponder("DELETE", url, httpmock.NewStringResponder(http.StatusNoContent, ""))
 
 		err := api.Delete(id)

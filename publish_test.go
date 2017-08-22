@@ -49,6 +49,9 @@ func TestDataChangeEvent_Marshal(t *testing.T) {
 }
 
 func TestPublishAPI_Publish(t *testing.T) {
+	httpmock.Activate()
+	defer httpmock.DeactivateAndReset()
+
 	events := []SomeUndefinedEvent{}
 	helperLoadTestData(t, "events-undefined-create.json", &events)
 
@@ -58,8 +61,6 @@ func TestPublishAPI_Publish(t *testing.T) {
 	publishAPI := NewPublishAPI(client, "test-event.undefined")
 
 	t.Run("fail to connect", func(t *testing.T) {
-		httpmock.Activate()
-		defer httpmock.DeactivateAndReset()
 		httpmock.RegisterResponder("POST", url, httpmock.NewErrorResponder(assert.AnError))
 
 		err := publishAPI.Publish(events)
@@ -69,9 +70,6 @@ func TestPublishAPI_Publish(t *testing.T) {
 	})
 
 	t.Run("fail decode body", func(t *testing.T) {
-		httpmock.Activate()
-		defer httpmock.DeactivateAndReset()
-
 		httpmock.RegisterResponder("POST", url, httpmock.NewStringResponder(http.StatusMultiStatus, ""))
 
 		err := publishAPI.Publish(events)
@@ -87,8 +85,6 @@ func TestPublishAPI_Publish(t *testing.T) {
 
 	t.Run("fail multi status", func(t *testing.T) {
 		batchItemResp := []BatchItemResponse{{Detail: "error one"}, {Detail: "error two"}}
-		httpmock.Activate()
-		defer httpmock.DeactivateAndReset()
 		responder, _ := httpmock.NewJsonResponder(http.StatusMultiStatus, batchItemResp)
 		httpmock.RegisterResponder("POST", url, responder)
 
@@ -103,8 +99,6 @@ func TestPublishAPI_Publish(t *testing.T) {
 
 	t.Run("fail unprocessable", func(t *testing.T) {
 		batchItemResp := []BatchItemResponse{{Detail: "error one"}, {Detail: "error two"}}
-		httpmock.Activate()
-		defer httpmock.DeactivateAndReset()
 		responder, _ := httpmock.NewJsonResponder(http.StatusUnprocessableEntity, batchItemResp)
 		httpmock.RegisterResponder("POST", url, responder)
 
@@ -121,8 +115,6 @@ func TestPublishAPI_Publish(t *testing.T) {
 
 	t.Run("fail unauthorized", func(t *testing.T) {
 		problem := problemJSON{Detail: "not authorized"}
-		httpmock.Activate()
-		defer httpmock.DeactivateAndReset()
 		responder, _ := httpmock.NewJsonResponder(http.StatusUnauthorized, problem)
 		httpmock.RegisterResponder("POST", url, responder)
 
@@ -133,8 +125,6 @@ func TestPublishAPI_Publish(t *testing.T) {
 	})
 
 	t.Run("success", func(t *testing.T) {
-		httpmock.Activate()
-		defer httpmock.DeactivateAndReset()
 		httpmock.RegisterResponder("POST", url, httpmock.Responder(func(r *http.Request) (*http.Response, error) {
 			uploaded := []SomeUndefinedEvent{}
 			err := json.NewDecoder(r.Body).Decode(&uploaded)
@@ -150,6 +140,9 @@ func TestPublishAPI_Publish(t *testing.T) {
 }
 
 func TestPublishAPI_PublishDataChangeEvent(t *testing.T) {
+	httpmock.Activate()
+	defer httpmock.DeactivateAndReset()
+
 	events := []DataChangeEvent{}
 	helperLoadTestData(t, "events-data-create.json", &events)
 
@@ -158,8 +151,6 @@ func TestPublishAPI_PublishDataChangeEvent(t *testing.T) {
 	client := &Client{nakadiURL: defaultNakadiURL, httpClient: http.DefaultClient}
 	publishAPI := NewPublishAPI(client, "test-event.data")
 
-	httpmock.Activate()
-	defer httpmock.DeactivateAndReset()
 	httpmock.RegisterResponder("POST", url, httpmock.Responder(func(r *http.Request) (*http.Response, error) {
 		uploaded := []DataChangeEvent{}
 		err := json.NewDecoder(r.Body).Decode(&uploaded)
@@ -174,6 +165,9 @@ func TestPublishAPI_PublishDataChangeEvent(t *testing.T) {
 }
 
 func TestPublishAPI_PublishBusinessEvent(t *testing.T) {
+	httpmock.Activate()
+	defer httpmock.DeactivateAndReset()
+
 	events := []BusinessEvent{}
 	helperLoadTestData(t, "events-business-create.json", &events)
 
@@ -182,8 +176,6 @@ func TestPublishAPI_PublishBusinessEvent(t *testing.T) {
 	client := &Client{nakadiURL: defaultNakadiURL, httpClient: http.DefaultClient}
 	publishAPI := NewPublishAPI(client, "test-event.business")
 
-	httpmock.Activate()
-	defer httpmock.DeactivateAndReset()
 	httpmock.RegisterResponder("POST", url, httpmock.Responder(func(r *http.Request) (*http.Response, error) {
 		uploaded := []BusinessEvent{}
 		err := json.NewDecoder(r.Body).Decode(&uploaded)
