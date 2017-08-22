@@ -171,7 +171,6 @@ func (s *StreamAPI) startStream() {
 		var cursor Cursor
 		var events []byte
 		for {
-			// read the next events or close and return
 			select {
 			case <-s.ctx.Done():
 				err = context.Canceled
@@ -179,7 +178,10 @@ func (s *StreamAPI) startStream() {
 				cursor, events, err = stream.nextEvents()
 			}
 
-			// write next result (events or error) to channel or close and return
+			if err == nil && len(events) == 0 {
+				continue
+			}
+
 			select {
 			case <-s.ctx.Done():
 				err = context.Canceled
@@ -187,7 +189,6 @@ func (s *StreamAPI) startStream() {
 				// nothing
 			}
 
-			// in case of errors, close the stream and open a new one or abort when canceled
 			if err != nil {
 				if err == context.Canceled {
 					stream.closeStream()
