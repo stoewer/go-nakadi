@@ -12,7 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestHttpStreamAPI_startStream(t *testing.T) {
+func TestStreamAPI_startStream(t *testing.T) {
 	retryCh := make(chan error, 1)
 	okCh := make(chan struct{}, 1)
 
@@ -42,7 +42,7 @@ func TestHttpStreamAPI_startStream(t *testing.T) {
 	}
 }
 
-func TestHttpStreamAPI_NextEvents(t *testing.T) {
+func TestStreamAPI_NextEvents(t *testing.T) {
 	expectedCursor := Cursor{NakadiStreamID: "stream-id"}
 	expectedEvents := []byte(`"events":[{"metadata":{"eid":"74450ab6-5461-11e7-9dd2-87c3afa8811f"})]`)
 
@@ -104,7 +104,7 @@ func TestHttpStreamAPI_NextEvents(t *testing.T) {
 	})
 }
 
-func TestHttpStreamAPI_CommitCursor(t *testing.T) {
+func TestStreamAPI_CommitCursor(t *testing.T) {
 	retryCh := make(chan error, 1)
 	okCh := make(chan struct{}, 1)
 	errorCh := make(chan error, 1)
@@ -170,7 +170,7 @@ func TestHttpStreamAPI_CommitCursor(t *testing.T) {
 	})
 }
 
-func TestHttpStreamAPI_Close(t *testing.T) {
+func TestStreamAPI_Close(t *testing.T) {
 	errorCh := make(chan error, 1)
 	streamAPI, opener, _, _ := setupMockStream(nil, nil)
 

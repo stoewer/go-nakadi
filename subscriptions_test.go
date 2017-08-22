@@ -21,7 +21,7 @@ func TestSubscription_Marshal(t *testing.T) {
 	assert.JSONEq(t, string(expected), string(serialized))
 }
 
-func TestHttpSubscriptionAPI_Get(t *testing.T) {
+func TestSubscriptionAPI_Get(t *testing.T) {
 	expected := &Subscription{}
 	serialized := helperLoadTestData(t, "subscription.json", expected)
 
@@ -81,7 +81,7 @@ func TestHttpSubscriptionAPI_Get(t *testing.T) {
 	})
 }
 
-func TestHttpSubscriptionAPI_List(t *testing.T) {
+func TestSubscriptionAPI_List(t *testing.T) {
 	expected := struct {
 		Items []*Subscription `json:"items"`
 	}{}
@@ -145,7 +145,7 @@ func TestHttpSubscriptionAPI_List(t *testing.T) {
 	})
 }
 
-func TestHttpSubscriptionAPI_Create(t *testing.T) {
+func TestSubscriptionAPI_Create(t *testing.T) {
 	subscription := &Subscription{OwningApplication: "test-app", EventTypes: []string{"test-event.data"}}
 	expected := &Subscription{}
 	serialized := helperLoadTestData(t, "subscription.json", expected)
@@ -210,7 +210,7 @@ func TestHttpSubscriptionAPI_Create(t *testing.T) {
 	})
 }
 
-func TestHttpSubscriptionAPI_Delete(t *testing.T) {
+func TestSubscriptionAPI_Delete(t *testing.T) {
 	id := "7dd69d58-7f20-11e7-9748-133d6a0dbfb3"
 
 	client := &Client{nakadiURL: defaultNakadiURL, httpClient: http.DefaultClient}

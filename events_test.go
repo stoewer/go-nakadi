@@ -20,7 +20,7 @@ func TestEventType_Marshal(t *testing.T) {
 	assert.JSONEq(t, string(expected), string(serialized))
 }
 
-func TestHttpEventTypeManager_Get(t *testing.T) {
+func TestEventAPI_Get(t *testing.T) {
 	expected := &EventType{}
 	serialized := helperLoadTestData(t, "event-type-complete.json", expected)
 
@@ -80,7 +80,7 @@ func TestHttpEventTypeManager_Get(t *testing.T) {
 	})
 }
 
-func TestHttpEventTypeManager_List(t *testing.T) {
+func TestEventAPI_List(t *testing.T) {
 	expected := []*EventType{}
 	serialized := helperLoadTestData(t, "event-types-complete.json", &expected)
 
@@ -140,7 +140,7 @@ func TestHttpEventTypeManager_List(t *testing.T) {
 	})
 }
 
-func TestHttpEventTypeManager_Create(t *testing.T) {
+func TestEventAPI_Create(t *testing.T) {
 	eventType := &EventType{}
 	helperLoadTestData(t, "event-type-complete.json", eventType)
 
@@ -189,7 +189,7 @@ func TestHttpEventTypeManager_Create(t *testing.T) {
 	})
 }
 
-func TestHttpEventTypeManager_Save(t *testing.T) {
+func TestEventAPI_Save(t *testing.T) {
 	eventType := &EventType{}
 	helperLoadTestData(t, "event-type-complete.json", eventType)
 
@@ -238,7 +238,7 @@ func TestHttpEventTypeManager_Save(t *testing.T) {
 	})
 }
 
-func TestHttpEventTypeManager_Delete(t *testing.T) {
+func TestEventAPI_Delete(t *testing.T) {
 	name := "test-event.change"
 
 	client := &Client{nakadiURL: defaultNakadiURL, httpClient: http.DefaultClient}

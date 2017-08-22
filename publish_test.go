@@ -48,7 +48,7 @@ func TestDataChangeEvent_Marshal(t *testing.T) {
 	assert.JSONEq(t, string(expected), string(serialized))
 }
 
-func TestHttpPublishAPI_Publish(t *testing.T) {
+func TestPublishAPI_Publish(t *testing.T) {
 	events := []SomeUndefinedEvent{}
 	helperLoadTestData(t, "events-undefined-create.json", &events)
 
@@ -149,7 +149,7 @@ func TestHttpPublishAPI_Publish(t *testing.T) {
 	})
 }
 
-func TestHttpPublishAPI_PublishDataChangeEvent(t *testing.T) {
+func TestPublishAPI_PublishDataChangeEvent(t *testing.T) {
 	events := []DataChangeEvent{}
 	helperLoadTestData(t, "events-data-create.json", &events)
 
@@ -173,7 +173,7 @@ func TestHttpPublishAPI_PublishDataChangeEvent(t *testing.T) {
 	assert.NoError(t, err)
 }
 
-func TestHttpPublishAPI_PublishBusinessEvent(t *testing.T) {
+func TestPublishAPI_PublishBusinessEvent(t *testing.T) {
 	events := []BusinessEvent{}
 	helperLoadTestData(t, "events-business-create.json", &events)
 
