@@ -14,6 +14,9 @@ import (
 )
 
 func TestSimpleStreamOpener_openStream(t *testing.T) {
+	httpmock.Activate()
+	defer httpmock.DeactivateAndReset()
+
 	createdAt := time.Time{}
 	createdAt.UnmarshalText([]byte("2017-08-17T00:00:23+02:00"))
 
@@ -49,9 +52,6 @@ func TestSimpleStreamOpener_openStream(t *testing.T) {
 
 	t.Run("fail connect error", func(t *testing.T) {
 		opener := setupOpener()
-
-		httpmock.Activate()
-		defer httpmock.DeactivateAndReset()
 		httpmock.RegisterResponder("GET", url, httpmock.NewErrorResponder(assert.AnError))
 
 		_, err := opener.openStream()
@@ -62,9 +62,6 @@ func TestSimpleStreamOpener_openStream(t *testing.T) {
 	t.Run("fail http error", func(t *testing.T) {
 		problem := &problemJSON{Detail: "foo problem detail"}
 		opener := setupOpener()
-
-		httpmock.Activate()
-		defer httpmock.DeactivateAndReset()
 		responder, _ := httpmock.NewJsonResponder(400, &problem)
 		httpmock.RegisterResponder("GET", url, responder)
 
@@ -75,9 +72,6 @@ func TestSimpleStreamOpener_openStream(t *testing.T) {
 
 	t.Run("success without token", func(t *testing.T) {
 		opener := setupOpener()
-
-		httpmock.Activate()
-		defer httpmock.DeactivateAndReset()
 		responder, _ := httpmock.NewJsonResponder(200, sub)
 		httpmock.RegisterResponder("GET", url, responder)
 
@@ -88,11 +82,7 @@ func TestSimpleStreamOpener_openStream(t *testing.T) {
 
 	t.Run("success with token", func(t *testing.T) {
 		opener := setupOpener()
-
-		httpmock.Activate()
-		defer httpmock.DeactivateAndReset()
 		responder, _ := httpmock.NewJsonResponder(200, sub)
-		// TODO check token here
 		httpmock.RegisterResponder("GET", url, responder)
 
 		stream, err := opener.openStream()
@@ -102,6 +92,9 @@ func TestSimpleStreamOpener_openStream(t *testing.T) {
 }
 
 func TestSimpleStream_nextEvents(t *testing.T) {
+	httpmock.Activate()
+	defer httpmock.DeactivateAndReset()
+
 	id := "21e9e526-551e-11e7-bbe7-1f386750d2b6"
 	url := fmt.Sprintf("%s/subscriptions/%s/events", defaultNakadiURL, id)
 
@@ -116,9 +109,6 @@ func TestSimpleStream_nextEvents(t *testing.T) {
 	}
 
 	t.Run("fail stream closed", func(t *testing.T) {
-		httpmock.Activate()
-		defer httpmock.DeactivateAndReset()
-
 		stream := setupStream(httpmock.NewStringResponder(200, ""))
 		stream.buffer = nil
 
@@ -128,9 +118,6 @@ func TestSimpleStream_nextEvents(t *testing.T) {
 	})
 
 	t.Run("fail EOF", func(t *testing.T) {
-		httpmock.Activate()
-		defer httpmock.DeactivateAndReset()
-
 		stream := setupStream(httpmock.NewStringResponder(200, ""))
 
 		_, _, err := stream.nextEvents()
@@ -139,9 +126,6 @@ func TestSimpleStream_nextEvents(t *testing.T) {
 	})
 
 	t.Run("fail unmarshal event", func(t *testing.T) {
-		httpmock.Activate()
-		defer httpmock.DeactivateAndReset()
-
 		stream := setupStream(httpmock.NewStringResponder(200, "not\n a\n event\n"))
 
 		_, _, err := stream.nextEvents()
@@ -150,9 +134,6 @@ func TestSimpleStream_nextEvents(t *testing.T) {
 	})
 
 	t.Run("successfully read events", func(t *testing.T) {
-		httpmock.Activate()
-		defer httpmock.DeactivateAndReset()
-
 		events := helperLoadTestData(t, "data-event-stream.json", nil)
 		stream := setupStream(httpmock.NewStringResponder(200, string(events)))
 
@@ -187,6 +168,9 @@ func TestSimpleStream_closeStream(t *testing.T) {
 }
 
 func TestSimpleCommitter_commitEvents(t *testing.T) {
+	httpmock.Activate()
+	defer httpmock.DeactivateAndReset()
+
 	id := "21e9e526-551e-11e7-bbe7-1f386750d2b6"
 	url := fmt.Sprintf("%s/subscriptions/%s/cursors", defaultNakadiURL, id)
 
@@ -202,9 +186,6 @@ func TestSimpleCommitter_commitEvents(t *testing.T) {
 	}
 
 	t.Run("fail retrieving token", func(t *testing.T) {
-		httpmock.Activate()
-		defer httpmock.DeactivateAndReset()
-
 		stream := setupCommitter(httpmock.NewStringResponder(200, ""))
 		stream.client.tokenProvider = func() (string, error) { return "", assert.AnError }
 
@@ -214,9 +195,6 @@ func TestSimpleCommitter_commitEvents(t *testing.T) {
 	})
 
 	t.Run("fail connect error", func(t *testing.T) {
-		httpmock.Activate()
-		defer httpmock.DeactivateAndReset()
-
 		stream := setupCommitter(httpmock.NewErrorResponder(assert.AnError))
 
 		err := stream.commitCursor(Cursor{})
@@ -226,9 +204,6 @@ func TestSimpleCommitter_commitEvents(t *testing.T) {
 
 	t.Run("fail http error", func(t *testing.T) {
 		problem := &problemJSON{Detail: "foo problem detail"}
-		httpmock.Activate()
-		defer httpmock.DeactivateAndReset()
-
 		responder, _ := httpmock.NewJsonResponder(400, &problem)
 		stream := setupCommitter(responder)
 
@@ -238,10 +213,6 @@ func TestSimpleCommitter_commitEvents(t *testing.T) {
 	})
 
 	t.Run("successful commit", func(t *testing.T) {
-		httpmock.Activate()
-		defer httpmock.DeactivateAndReset()
-
-		// TODO check body here
 		stream := setupCommitter(httpmock.NewStringResponder(200, ""))
 
 		err := stream.commitCursor(Cursor{})

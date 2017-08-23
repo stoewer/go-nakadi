@@ -7,6 +7,7 @@ import (
 	"net/http"
 
 	"encoding/json"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gopkg.in/jarcoal/httpmock.v1"
@@ -50,6 +51,9 @@ func TestNew(t *testing.T) {
 }
 
 func TestClient_httpGET(t *testing.T) {
+	httpmock.Activate()
+	defer httpmock.DeactivateAndReset()
+
 	body := map[string]string{}
 	encoded := `{"key":"value"}`
 	url := "/get-test"
@@ -63,9 +67,6 @@ func TestClient_httpGET(t *testing.T) {
 
 	t.Run("fail connection error", func(t *testing.T) {
 		client := setupClient(nil)
-		httpmock.Activate()
-		defer httpmock.DeactivateAndReset()
-
 		httpmock.RegisterResponder("GET", url, httpmock.NewErrorResponder(assert.AnError))
 
 		err := client.httpGET(url, &body, msg)
@@ -78,8 +79,6 @@ func TestClient_httpGET(t *testing.T) {
 	t.Run("fail oauth token", func(t *testing.T) {
 		client := setupClient(nil)
 		client.tokenProvider = func() (string, error) { return "", assert.AnError }
-		httpmock.Activate()
-		defer httpmock.DeactivateAndReset()
 		httpmock.RegisterResponder("GET", url, httpmock.NewStringResponder(http.StatusOK, encoded))
 
 		err := client.httpGET(url, &body, msg)
@@ -91,8 +90,6 @@ func TestClient_httpGET(t *testing.T) {
 	t.Run("success oauth token", func(t *testing.T) {
 		client := setupClient(nil)
 		client.tokenProvider = func() (string, error) { return "token", nil }
-		httpmock.Activate()
-		defer httpmock.DeactivateAndReset()
 		httpmock.RegisterResponder("GET", url, func(r *http.Request) (*http.Response, error) {
 			assert.Equal(t, "Bearer token", r.Header.Get("Authorization"))
 			return httpmock.NewStringResponse(http.StatusOK, encoded), nil
@@ -106,8 +103,6 @@ func TestClient_httpGET(t *testing.T) {
 
 	t.Run("success", func(t *testing.T) {
 		client := setupClient(nil)
-		httpmock.Activate()
-		defer httpmock.DeactivateAndReset()
 		httpmock.RegisterResponder("GET", url, httpmock.NewStringResponder(http.StatusOK, encoded))
 
 		err := client.httpGET(url, &body, msg)
@@ -118,6 +113,9 @@ func TestClient_httpGET(t *testing.T) {
 }
 
 func TestClient_httpPUT(t *testing.T) {
+	httpmock.Activate()
+	defer httpmock.DeactivateAndReset()
+
 	expected := map[string]string{"key": "value"}
 	url := "/put-test"
 
@@ -129,8 +127,6 @@ func TestClient_httpPUT(t *testing.T) {
 
 	t.Run("fail connection error", func(t *testing.T) {
 		client := setupClient(nil)
-		httpmock.Activate()
-		defer httpmock.DeactivateAndReset()
 		httpmock.RegisterResponder("PUT", url, httpmock.NewErrorResponder(assert.AnError))
 
 		_, err := client.httpPUT(url, &expected)
@@ -142,8 +138,6 @@ func TestClient_httpPUT(t *testing.T) {
 	t.Run("fail oauth token", func(t *testing.T) {
 		client := setupClient(nil)
 		client.tokenProvider = func() (string, error) { return "", assert.AnError }
-		httpmock.Activate()
-		defer httpmock.DeactivateAndReset()
 		httpmock.RegisterResponder("PUT", url, httpmock.NewStringResponder(http.StatusOK, ""))
 
 		_, err := client.httpPUT(url, &expected)
@@ -155,8 +149,6 @@ func TestClient_httpPUT(t *testing.T) {
 	t.Run("success oauth token", func(t *testing.T) {
 		client := setupClient(nil)
 		client.tokenProvider = func() (string, error) { return "token", nil }
-		httpmock.Activate()
-		defer httpmock.DeactivateAndReset()
 		httpmock.RegisterResponder("PUT", url, func(r *http.Request) (*http.Response, error) {
 			assert.Equal(t, "Bearer token", r.Header.Get("Authorization"))
 			return httpmock.NewStringResponse(http.StatusOK, ""), nil
@@ -170,8 +162,6 @@ func TestClient_httpPUT(t *testing.T) {
 
 	t.Run("success", func(t *testing.T) {
 		client := setupClient(nil)
-		httpmock.Activate()
-		defer httpmock.DeactivateAndReset()
 		httpmock.RegisterResponder("PUT", url, func(r *http.Request) (*http.Response, error) {
 			body := map[string]string{}
 			err := json.NewDecoder(r.Body).Decode(&body)
@@ -188,6 +178,9 @@ func TestClient_httpPUT(t *testing.T) {
 }
 
 func TestClient_httpPOST(t *testing.T) {
+	httpmock.Activate()
+	defer httpmock.DeactivateAndReset()
+
 	expected := map[string]string{"key": "value"}
 	url := "/post-test"
 
@@ -199,8 +192,6 @@ func TestClient_httpPOST(t *testing.T) {
 
 	t.Run("fail connection error", func(t *testing.T) {
 		client := setupClient(nil)
-		httpmock.Activate()
-		defer httpmock.DeactivateAndReset()
 		httpmock.RegisterResponder("POST", url, httpmock.NewErrorResponder(assert.AnError))
 
 		_, err := client.httpPOST(url, &expected)
@@ -212,8 +203,6 @@ func TestClient_httpPOST(t *testing.T) {
 	t.Run("fail oauth token", func(t *testing.T) {
 		client := setupClient(nil)
 		client.tokenProvider = func() (string, error) { return "", assert.AnError }
-		httpmock.Activate()
-		defer httpmock.DeactivateAndReset()
 		httpmock.RegisterResponder("POST", url, httpmock.NewStringResponder(http.StatusOK, ""))
 
 		_, err := client.httpPOST(url, &expected)
@@ -225,8 +214,6 @@ func TestClient_httpPOST(t *testing.T) {
 	t.Run("success oauth token", func(t *testing.T) {
 		client := setupClient(nil)
 		client.tokenProvider = func() (string, error) { return "token", nil }
-		httpmock.Activate()
-		defer httpmock.DeactivateAndReset()
 		httpmock.RegisterResponder("POST", url, func(r *http.Request) (*http.Response, error) {
 			assert.Equal(t, "Bearer token", r.Header.Get("Authorization"))
 			return httpmock.NewStringResponse(http.StatusOK, ""), nil
@@ -240,8 +227,6 @@ func TestClient_httpPOST(t *testing.T) {
 
 	t.Run("success", func(t *testing.T) {
 		client := setupClient(nil)
-		httpmock.Activate()
-		defer httpmock.DeactivateAndReset()
 		httpmock.RegisterResponder("POST", url, func(r *http.Request) (*http.Response, error) {
 			body := map[string]string{}
 			err := json.NewDecoder(r.Body).Decode(&body)
@@ -258,6 +243,9 @@ func TestClient_httpPOST(t *testing.T) {
 }
 
 func TestClient_httpDELETE(t *testing.T) {
+	httpmock.Activate()
+	defer httpmock.DeactivateAndReset()
+
 	msg := "error message"
 	url := "/delete-test"
 
@@ -269,8 +257,6 @@ func TestClient_httpDELETE(t *testing.T) {
 
 	t.Run("fail connection error", func(t *testing.T) {
 		client := setupClient(nil)
-		httpmock.Activate()
-		defer httpmock.DeactivateAndReset()
 		httpmock.RegisterResponder("DELETE", url, httpmock.NewErrorResponder(assert.AnError))
 
 		err := client.httpDELETE(url, msg)
@@ -283,8 +269,6 @@ func TestClient_httpDELETE(t *testing.T) {
 	t.Run("fail oauth token", func(t *testing.T) {
 		client := setupClient(nil)
 		client.tokenProvider = func() (string, error) { return "", assert.AnError }
-		httpmock.Activate()
-		defer httpmock.DeactivateAndReset()
 		httpmock.RegisterResponder("DELETE", url, httpmock.NewStringResponder(http.StatusOK, ""))
 
 		err := client.httpDELETE(url, msg)
@@ -296,8 +280,6 @@ func TestClient_httpDELETE(t *testing.T) {
 	t.Run("success oauth token", func(t *testing.T) {
 		client := setupClient(nil)
 		client.tokenProvider = func() (string, error) { return "token", nil }
-		httpmock.Activate()
-		defer httpmock.DeactivateAndReset()
 		httpmock.RegisterResponder("DELETE", url, func(r *http.Request) (*http.Response, error) {
 			require.Equal(t, "Bearer token", r.Header.Get("Authorization"))
 			return httpmock.NewStringResponse(http.StatusOK, ""), nil
@@ -310,8 +292,6 @@ func TestClient_httpDELETE(t *testing.T) {
 
 	t.Run("success", func(t *testing.T) {
 		client := setupClient(nil)
-		httpmock.Activate()
-		defer httpmock.DeactivateAndReset()
 		httpmock.RegisterResponder("DELETE", url, httpmock.NewStringResponder(http.StatusOK, ""))
 
 		err := client.httpDELETE(url, msg)
