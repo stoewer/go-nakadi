@@ -31,7 +31,7 @@ func TestIntegrationStreamAPI(t *testing.T) {
 	}
 
 	// stream events
-	streamAPI := NewStream(client, subscription.ID, nil)
+	streamAPI := NewStream(client, subscription.ID, &StreamOptions{BatchLimit: 2})
 	received := []DataChangeEvent{}
 	for len(received) < len(events) {
 		cursor, rawEvents, err := streamAPI.NextEvents()
@@ -40,6 +40,7 @@ func TestIntegrationStreamAPI(t *testing.T) {
 		temp := []DataChangeEvent{}
 		err = json.Unmarshal(rawEvents, &temp)
 		require.NoError(t, err)
+		assert.Len(t, temp, 2)
 		received = append(received, temp...)
 
 		err = streamAPI.CommitCursor(cursor)

@@ -15,6 +15,7 @@ import (
 type simpleStreamOpener struct {
 	client         *Client
 	subscriptionID string
+	batchLimit     int
 }
 
 func (so *simpleStreamOpener) openStream() (streamer, error) {
@@ -51,6 +52,9 @@ func (so *simpleStreamOpener) openStream() (streamer, error) {
 }
 
 func (so *simpleStreamOpener) streamURL(id string) string {
+	if so.batchLimit != 0 {
+		return fmt.Sprintf("%s/subscriptions/%s/events?batch_limit=%d", so.client.nakadiURL, id, so.batchLimit)
+	}
 	return fmt.Sprintf("%s/subscriptions/%s/events", so.client.nakadiURL, id)
 }
 
