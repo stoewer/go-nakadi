@@ -16,8 +16,8 @@ import (
 func TestIntegrationEventAPI_Get(t *testing.T) {
 	expected := &EventType{}
 	helperLoadTestData(t, "event-type-create.json", expected)
-	helperUploadEventTypes(t, expected)
-	defer helperDeleteEventTypes(t, expected.Name)
+	helperCreateEventTypes(t, expected)
+	defer helperDeleteEventTypes(t, expected)
 
 	client := New(defaultNakadiURL, &ClientOptions{ConnectionTimeout: time.Second})
 	eventAPI := NewEventAPI(client)
@@ -46,8 +46,8 @@ func TestIntegrationEventAPI_Get(t *testing.T) {
 func TestIntegrationEventAPI_List(t *testing.T) {
 	expected := []*EventType{}
 	helperLoadTestData(t, "event-types-create.json", &expected)
-	helperUploadEventTypes(t, expected...)
-	defer helperDeleteEventTypes(t, expected[0].Name, expected[1].Name)
+	helperCreateEventTypes(t, expected...)
+	defer helperDeleteEventTypes(t, expected...)
 
 	client := New(defaultNakadiURL, &ClientOptions{ConnectionTimeout: time.Second})
 	eventAPI := NewEventAPI(client)
@@ -75,15 +75,15 @@ func TestIntegrationEventAPI_Create(t *testing.T) {
 		err := eventAPI.Create(eventType)
 
 		require.NoError(t, err)
-		helperDeleteEventTypes(t, eventType.Name)
+		helperDeleteEventTypes(t, eventType)
 	})
 }
 
 func TestIntegrationEventAPI_Update(t *testing.T) {
 	eventType := &EventType{}
 	helperLoadTestData(t, "event-type-create.json", eventType)
-	helperUploadEventTypes(t, eventType)
-	defer helperDeleteEventTypes(t, eventType.Name)
+	helperCreateEventTypes(t, eventType)
+	defer helperDeleteEventTypes(t, eventType)
 
 	client := New(defaultNakadiURL, &ClientOptions{ConnectionTimeout: time.Second})
 	eventAPI := NewEventAPI(client)
@@ -118,7 +118,7 @@ func TestIntegrationEventAPI_Update(t *testing.T) {
 func TestIntegrationEventAPI_Delete(t *testing.T) {
 	expected := &EventType{}
 	helperLoadTestData(t, "event-type-create.json", expected)
-	helperUploadEventTypes(t, expected)
+	helperCreateEventTypes(t, expected)
 
 	client := New(defaultNakadiURL, &ClientOptions{ConnectionTimeout: time.Second})
 	eventAPI := NewEventAPI(client)
@@ -137,7 +137,7 @@ func TestIntegrationEventAPI_Delete(t *testing.T) {
 	})
 }
 
-func helperUploadEventTypes(t *testing.T, eventTypes ...*EventType) {
+func helperCreateEventTypes(t *testing.T, eventTypes ...*EventType) {
 	for _, eventType := range eventTypes {
 		serialized, err := json.Marshal(eventType)
 		require.NoError(t, err)
@@ -146,9 +146,9 @@ func helperUploadEventTypes(t *testing.T, eventTypes ...*EventType) {
 	}
 }
 
-func helperDeleteEventTypes(t *testing.T, names ...string) {
-	for _, name := range names {
-		request, err := http.NewRequest("DELETE", defaultNakadiURL+"/event-types/"+name, nil)
+func helperDeleteEventTypes(t *testing.T, eventTypes ...*EventType) {
+	for _, e := range eventTypes {
+		request, err := http.NewRequest("DELETE", defaultNakadiURL+"/event-types/"+e.Name, nil)
 		require.NoError(t, err)
 		_, err = http.DefaultClient.Do(request)
 		require.NoError(t, err)
