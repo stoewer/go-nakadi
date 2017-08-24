@@ -1,13 +1,12 @@
 package nakadi
 
 import (
+	"encoding/json"
+	"net/http"
 	"testing"
 	"time"
 
-	"net/http"
-
-	"encoding/json"
-
+	"github.com/cenkalti/backoff"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gopkg.in/jarcoal/httpmock.v1"
@@ -69,7 +68,7 @@ func TestClient_httpGET(t *testing.T) {
 		client := setupClient(nil)
 		httpmock.RegisterResponder("GET", url, httpmock.NewErrorResponder(assert.AnError))
 
-		err := client.httpGET(url, &body, msg)
+		err := client.httpGET(&backoff.StopBackOff{}, url, &body, msg)
 
 		require.Error(t, err)
 		assert.Regexp(t, assert.AnError, err)
@@ -81,7 +80,7 @@ func TestClient_httpGET(t *testing.T) {
 		client.tokenProvider = func() (string, error) { return "", assert.AnError }
 		httpmock.RegisterResponder("GET", url, httpmock.NewStringResponder(http.StatusOK, encoded))
 
-		err := client.httpGET(url, &body, msg)
+		err := client.httpGET(&backoff.StopBackOff{}, url, &body, msg)
 
 		require.Error(t, err)
 		assert.Regexp(t, assert.AnError, err)
@@ -95,7 +94,7 @@ func TestClient_httpGET(t *testing.T) {
 			return httpmock.NewStringResponse(http.StatusOK, encoded), nil
 		})
 
-		err := client.httpGET(url, &body, msg)
+		err := client.httpGET(&backoff.StopBackOff{}, url, &body, msg)
 
 		require.NoError(t, err)
 		assert.Equal(t, map[string]string{"key": "value"}, body)
@@ -105,7 +104,7 @@ func TestClient_httpGET(t *testing.T) {
 		client := setupClient(nil)
 		httpmock.RegisterResponder("GET", url, httpmock.NewStringResponder(http.StatusOK, encoded))
 
-		err := client.httpGET(url, &body, msg)
+		err := client.httpGET(&backoff.StopBackOff{}, url, &body, msg)
 
 		require.NoError(t, err)
 		assert.Equal(t, map[string]string{"key": "value"}, body)
@@ -129,7 +128,7 @@ func TestClient_httpPUT(t *testing.T) {
 		client := setupClient(nil)
 		httpmock.RegisterResponder("PUT", url, httpmock.NewErrorResponder(assert.AnError))
 
-		_, err := client.httpPUT(url, &expected)
+		_, err := client.httpPUT(&backoff.StopBackOff{}, url, &expected)
 
 		require.Error(t, err)
 		assert.Regexp(t, assert.AnError, err)
@@ -140,7 +139,7 @@ func TestClient_httpPUT(t *testing.T) {
 		client.tokenProvider = func() (string, error) { return "", assert.AnError }
 		httpmock.RegisterResponder("PUT", url, httpmock.NewStringResponder(http.StatusOK, ""))
 
-		_, err := client.httpPUT(url, &expected)
+		_, err := client.httpPUT(&backoff.StopBackOff{}, url, &expected)
 
 		require.Error(t, err)
 		assert.Regexp(t, assert.AnError, err)
@@ -154,7 +153,7 @@ func TestClient_httpPUT(t *testing.T) {
 			return httpmock.NewStringResponse(http.StatusOK, ""), nil
 		})
 
-		response, err := client.httpPUT(url, &expected)
+		response, err := client.httpPUT(&backoff.StopBackOff{}, url, &expected)
 
 		require.NoError(t, err)
 		assert.Equal(t, http.StatusOK, response.StatusCode)
@@ -170,7 +169,7 @@ func TestClient_httpPUT(t *testing.T) {
 			return httpmock.NewStringResponse(http.StatusOK, ""), nil
 		})
 
-		response, err := client.httpPUT(url, &expected)
+		response, err := client.httpPUT(&backoff.StopBackOff{}, url, &expected)
 
 		require.NoError(t, err)
 		assert.Equal(t, http.StatusOK, response.StatusCode)
@@ -194,7 +193,7 @@ func TestClient_httpPOST(t *testing.T) {
 		client := setupClient(nil)
 		httpmock.RegisterResponder("POST", url, httpmock.NewErrorResponder(assert.AnError))
 
-		_, err := client.httpPOST(url, &expected)
+		_, err := client.httpPOST(&backoff.StopBackOff{}, url, &expected)
 
 		require.Error(t, err)
 		assert.Regexp(t, assert.AnError, err)
@@ -205,7 +204,7 @@ func TestClient_httpPOST(t *testing.T) {
 		client.tokenProvider = func() (string, error) { return "", assert.AnError }
 		httpmock.RegisterResponder("POST", url, httpmock.NewStringResponder(http.StatusOK, ""))
 
-		_, err := client.httpPOST(url, &expected)
+		_, err := client.httpPOST(&backoff.StopBackOff{}, url, &expected)
 
 		require.Error(t, err)
 		assert.Regexp(t, assert.AnError, err)
@@ -219,7 +218,7 @@ func TestClient_httpPOST(t *testing.T) {
 			return httpmock.NewStringResponse(http.StatusOK, ""), nil
 		})
 
-		response, err := client.httpPOST(url, &expected)
+		response, err := client.httpPOST(&backoff.StopBackOff{}, url, &expected)
 
 		require.NoError(t, err)
 		assert.Equal(t, http.StatusOK, response.StatusCode)
@@ -235,7 +234,7 @@ func TestClient_httpPOST(t *testing.T) {
 			return httpmock.NewStringResponse(http.StatusOK, ""), nil
 		})
 
-		response, err := client.httpPOST(url, &expected)
+		response, err := client.httpPOST(&backoff.StopBackOff{}, url, &expected)
 
 		require.NoError(t, err)
 		assert.Equal(t, http.StatusOK, response.StatusCode)
@@ -259,7 +258,7 @@ func TestClient_httpDELETE(t *testing.T) {
 		client := setupClient(nil)
 		httpmock.RegisterResponder("DELETE", url, httpmock.NewErrorResponder(assert.AnError))
 
-		err := client.httpDELETE(url, msg)
+		err := client.httpDELETE(&backoff.StopBackOff{}, url, msg)
 
 		require.Error(t, err)
 		assert.Regexp(t, assert.AnError, err)
@@ -271,7 +270,7 @@ func TestClient_httpDELETE(t *testing.T) {
 		client.tokenProvider = func() (string, error) { return "", assert.AnError }
 		httpmock.RegisterResponder("DELETE", url, httpmock.NewStringResponder(http.StatusOK, ""))
 
-		err := client.httpDELETE(url, msg)
+		err := client.httpDELETE(&backoff.StopBackOff{}, url, msg)
 
 		require.Error(t, err)
 		assert.Regexp(t, assert.AnError, err)
@@ -285,7 +284,7 @@ func TestClient_httpDELETE(t *testing.T) {
 			return httpmock.NewStringResponse(http.StatusOK, ""), nil
 		})
 
-		err := client.httpDELETE(url, msg)
+		err := client.httpDELETE(&backoff.StopBackOff{}, url, msg)
 
 		assert.NoError(t, err)
 	})
@@ -294,7 +293,7 @@ func TestClient_httpDELETE(t *testing.T) {
 		client := setupClient(nil)
 		httpmock.RegisterResponder("DELETE", url, httpmock.NewStringResponder(http.StatusOK, ""))
 
-		err := client.httpDELETE(url, msg)
+		err := client.httpDELETE(&backoff.StopBackOff{}, url, msg)
 
 		assert.NoError(t, err)
 	})

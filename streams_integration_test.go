@@ -22,7 +22,7 @@ func TestIntegrationStreamAPI(t *testing.T) {
 	defer helperDeleteSubscriptions(t, eventType, subscription)
 
 	client := New(defaultNakadiURL, &ClientOptions{ConnectionTimeout: time.Second})
-	publishAPI := NewPublishAPI(client, eventType.Name)
+	publishAPI := NewPublishAPI(client, eventType.Name, &PublishOptions{Retry: true})
 
 	// publish events
 	for _, e := range events {

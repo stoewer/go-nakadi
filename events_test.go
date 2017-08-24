@@ -6,6 +6,8 @@ import (
 	"net/http"
 	"testing"
 
+	"time"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gopkg.in/jarcoal/httpmock.v1"
@@ -28,7 +30,7 @@ func TestEventAPI_Get(t *testing.T) {
 	serialized := helperLoadTestData(t, "event-type-complete.json", expected)
 
 	client := &Client{nakadiURL: defaultNakadiURL, httpClient: http.DefaultClient}
-	api := NewEventAPI(client)
+	api := NewEventAPI(client, nil)
 	url := fmt.Sprintf("%s/event-types/%s", defaultNakadiURL, expected.Name)
 
 	t.Run("fail connection error", func(t *testing.T) {
@@ -81,7 +83,7 @@ func TestEventAPI_List(t *testing.T) {
 	serialized := helperLoadTestData(t, "event-types-complete.json", &expected)
 
 	client := &Client{nakadiURL: defaultNakadiURL, httpClient: http.DefaultClient}
-	api := NewEventAPI(client)
+	api := NewEventAPI(client, nil)
 	url := fmt.Sprintf("%s/event-types", defaultNakadiURL)
 
 	t.Run("fail connection error", func(t *testing.T) {
@@ -137,7 +139,7 @@ func TestEventAPI_Create(t *testing.T) {
 		nakadiURL:     defaultNakadiURL,
 		httpClient:    http.DefaultClient,
 		tokenProvider: func() (string, error) { return "token", nil }}
-	api := NewEventAPI(client)
+	api := NewEventAPI(client, nil)
 	url := fmt.Sprintf("%s/event-types", defaultNakadiURL)
 
 	t.Run("fail connection error", func(t *testing.T) {
@@ -182,7 +184,7 @@ func TestEventAPI_Save(t *testing.T) {
 		nakadiURL:     defaultNakadiURL,
 		httpClient:    http.DefaultClient,
 		tokenProvider: func() (string, error) { return "token", nil }}
-	api := NewEventAPI(client)
+	api := NewEventAPI(client, nil)
 	url := fmt.Sprintf("%s/event-types/%s", defaultNakadiURL, eventType.Name)
 
 	t.Run("fail connection error", func(t *testing.T) {
@@ -223,7 +225,7 @@ func TestEventAPI_Delete(t *testing.T) {
 	name := "test-event.change"
 
 	client := &Client{nakadiURL: defaultNakadiURL, httpClient: http.DefaultClient}
-	api := NewEventAPI(client)
+	api := NewEventAPI(client, nil)
 	url := fmt.Sprintf("%s/event-types/%s", defaultNakadiURL, name)
 
 	t.Run("fail connection error", func(t *testing.T) {
@@ -257,4 +259,57 @@ func TestEventAPI_Delete(t *testing.T) {
 		err := api.Delete(name)
 		assert.NoError(t, err)
 	})
+}
+
+func TestEventOptions_withDefaults(t *testing.T) {
+	tests := []struct {
+		Options  *EventOptions
+		Expected *EventOptions
+	}{
+		{
+			Options: nil,
+			Expected: &EventOptions{
+				InitialRetryInterval: defaultInitialRetryInterval,
+				MaxRetryInterval:     defaultMaxRetryInterval,
+				MaxElapsedTime:       defaultMaxElapsedTime,
+			},
+		},
+		{
+			Options: &EventOptions{InitialRetryInterval: time.Hour},
+			Expected: &EventOptions{
+				InitialRetryInterval: time.Hour,
+				MaxRetryInterval:     defaultMaxRetryInterval,
+				MaxElapsedTime:       defaultMaxElapsedTime,
+			},
+		},
+		{
+			Options: &EventOptions{MaxRetryInterval: time.Hour},
+			Expected: &EventOptions{
+				InitialRetryInterval: defaultInitialRetryInterval,
+				MaxRetryInterval:     time.Hour,
+				MaxElapsedTime:       defaultMaxElapsedTime,
+			},
+		},
+		{
+			Options: &EventOptions{MaxElapsedTime: time.Hour},
+			Expected: &EventOptions{
+				InitialRetryInterval: defaultInitialRetryInterval,
+				MaxRetryInterval:     defaultMaxRetryInterval,
+				MaxElapsedTime:       time.Hour,
+			},
+		},
+		{
+			Options: &EventOptions{Retry: true},
+			Expected: &EventOptions{
+				Retry:                true,
+				InitialRetryInterval: defaultInitialRetryInterval,
+				MaxRetryInterval:     defaultMaxRetryInterval,
+				MaxElapsedTime:       defaultMaxElapsedTime,
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		assert.Equal(t, tt.Expected, tt.Options.withDefaults())
+	}
 }

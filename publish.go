@@ -1,12 +1,12 @@
 package nakadi
 
 import (
+	"encoding/json"
 	"fmt"
+	"net/http"
 	"time"
 
-	"encoding/json"
-	"net/http"
-
+	"github.com/cenkalti/backoff"
 	"github.com/pkg/errors"
 )
 
@@ -41,13 +41,64 @@ type DataChangeEvent struct {
 	DataType string        `json:"data_type"`
 }
 
-// NewPublishAPI creates a new instance of the PublishAPI which can be used to publish Nakadi events.
-// As for all sub APIs of the `go-nakadi` package NewPublishAPI receives a configured Nakadi client.
-// Furthermore the name of the event type must be provided.
-func NewPublishAPI(client *Client, eventType string) *PublishAPI {
+// PublishOptions is a set of optional parameters used to configure the PublishAPI.
+type PublishOptions struct {
+	// Whether or not publish methods retry when publishing fails. If set to true
+	// InitialRetryInterval, MaxRetryInterval, and MaxElapsedTime have no effect
+	// (default: false).
+	Retry bool
+	// The initial (minimal) retry interval used for the exponential backoff algorithm
+	// when retry is enables.
+	InitialRetryInterval time.Duration
+	// MaxRetryInterval the maximum retry interval. Once the exponential backoff reaches
+	// this value the retry intervals remain constant.
+	MaxRetryInterval time.Duration
+	// MaxElapsedTime is the maximum time spent on retries when publishing events. Once
+	// this value was reached the exponential backoff is halted and the events will not be
+	// published.
+	MaxElapsedTime time.Duration
+}
+
+func (o *PublishOptions) withDefaults() *PublishOptions {
+	var copyOptions PublishOptions
+	if o != nil {
+		copyOptions = *o
+	}
+	if copyOptions.InitialRetryInterval == 0 {
+		copyOptions.InitialRetryInterval = defaultInitialRetryInterval
+	}
+	if copyOptions.MaxRetryInterval == 0 {
+		copyOptions.MaxRetryInterval = defaultMaxRetryInterval
+	}
+	if copyOptions.MaxElapsedTime == 0 {
+		copyOptions.MaxElapsedTime = defaultMaxElapsedTime
+	}
+	return &copyOptions
+}
+
+// NewPublishAPI creates a new instance of the PublishAPI which can be used to publish
+// Nakadi events. As for all sub APIs of the `go-nakadi` package NewPublishAPI receives a
+// configured Nakadi client. Furthermore the name of the event type must be provided.
+// The last parameter is a struct containing only optional parameters. The options may be
+// nil.
+func NewPublishAPI(client *Client, eventType string, options *PublishOptions) *PublishAPI {
+	options = options.withDefaults()
+
+	var backOff backoff.BackOff
+	if options.Retry {
+		back := backoff.NewExponentialBackOff()
+		back.InitialInterval = options.InitialRetryInterval
+		back.MaxInterval = options.MaxRetryInterval
+		back.MaxElapsedTime = options.MaxElapsedTime
+		backOff = back
+	} else {
+		backOff = &backoff.StopBackOff{}
+	}
+
 	return &PublishAPI{
 		client:     client,
-		publishURL: fmt.Sprintf("%s/event-types/%s/events", client.nakadiURL, eventType)}
+		publishURL: fmt.Sprintf("%s/event-types/%s/events", client.nakadiURL, eventType),
+		backOff:    backOff}
 }
 
 // PublishAPI is a sub API for publishing Nakadi events. All publish methods emit events as a single batch. If
@@ -56,22 +107,35 @@ func NewPublishAPI(client *Client, eventType string) *PublishAPI {
 type PublishAPI struct {
 	client     *Client
 	publishURL string
+	backOff    backoff.BackOff
 }
 
-// PublishDataChangeEvent emits a batch of data change events.
+// PublishDataChangeEvent emits a batch of data change events. Depending on the options used when creating
+// the PublishAPI this method will retry to publish the events if the were not successfully published.
 func (p *PublishAPI) PublishDataChangeEvent(events []DataChangeEvent) error {
 	return p.Publish(events)
 }
 
-// PublishBusinessEvent emits a batch of business events.
+// PublishBusinessEvent emits a batch of business events. Depending on the options used when creating
+// the PublishAPI this method will retry to publish the events if the were not successfully published.
 func (p *PublishAPI) PublishBusinessEvent(events []BusinessEvent) error {
 	return p.Publish(events)
 }
 
 // Publish is used to emit a batch of undefined events. But can also be used to publish data change or
-// business events.
+// business events. Depending on the options used when creating the PublishAPI this method will retry
+// to publish the events if the were not successfully published.
 func (p *PublishAPI) Publish(events interface{}) error {
-	response, err := p.client.httpPOST(p.publishURL, events)
+	err := backoff.Retry(func() error {
+		return p.simplePublish(events)
+	}, p.backOff)
+
+	return err
+}
+
+// simplePublish makes a single call to the publish endpoint without retrying.
+func (p *PublishAPI) simplePublish(events interface{}) error {
+	response, err := p.client.httpPOST(p.backOff, p.publishURL, events)
 	if err != nil {
 		return errors.Wrap(err, "unable to publish event")
 	}

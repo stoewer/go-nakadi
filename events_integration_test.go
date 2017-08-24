@@ -20,7 +20,7 @@ func TestIntegrationEventAPI_Get(t *testing.T) {
 	defer helperDeleteEventTypes(t, expected)
 
 	client := New(defaultNakadiURL, &ClientOptions{ConnectionTimeout: time.Second})
-	eventAPI := NewEventAPI(client)
+	eventAPI := NewEventAPI(client, &EventOptions{Retry: true})
 
 	t.Run("fail not found", func(t *testing.T) {
 		_, err := eventAPI.Get("does-not-exist")
@@ -50,7 +50,7 @@ func TestIntegrationEventAPI_List(t *testing.T) {
 	defer helperDeleteEventTypes(t, expected...)
 
 	client := New(defaultNakadiURL, &ClientOptions{ConnectionTimeout: time.Second})
-	eventAPI := NewEventAPI(client)
+	eventAPI := NewEventAPI(client, nil)
 
 	eventTypes, err := eventAPI.List()
 	require.NoError(t, err)
@@ -62,7 +62,7 @@ func TestIntegrationEventAPI_Create(t *testing.T) {
 	helperLoadTestData(t, "event-type-create.json", eventType)
 
 	client := New(defaultNakadiURL, &ClientOptions{ConnectionTimeout: time.Second})
-	eventAPI := NewEventAPI(client)
+	eventAPI := NewEventAPI(client, nil)
 
 	t.Run("fail invalid event type", func(t *testing.T) {
 		err := eventAPI.Create(&EventType{Name: "foo"})
@@ -86,7 +86,7 @@ func TestIntegrationEventAPI_Update(t *testing.T) {
 	defer helperDeleteEventTypes(t, eventType)
 
 	client := New(defaultNakadiURL, &ClientOptions{ConnectionTimeout: time.Second})
-	eventAPI := NewEventAPI(client)
+	eventAPI := NewEventAPI(client, nil)
 
 	t.Run("fail not found", func(t *testing.T) {
 		copyEventType := *eventType
@@ -121,7 +121,7 @@ func TestIntegrationEventAPI_Delete(t *testing.T) {
 	helperCreateEventTypes(t, expected)
 
 	client := New(defaultNakadiURL, &ClientOptions{ConnectionTimeout: time.Second})
-	eventAPI := NewEventAPI(client)
+	eventAPI := NewEventAPI(client, nil)
 
 	t.Run("fail not found", func(t *testing.T) {
 		err := eventAPI.Delete("does-not-exist")

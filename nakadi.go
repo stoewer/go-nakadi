@@ -6,12 +6,16 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/cenkalti/backoff"
 	"github.com/pkg/errors"
 )
 
 const (
-	defaultTimeOut   = 30 * time.Second
-	defaultNakadiURL = "http://localhost:8080"
+	defaultTimeOut              = 30 * time.Second
+	defaultNakadiURL            = "http://localhost:8080"
+	defaultInitialRetryInterval = time.Millisecond * 10
+	defaultMaxRetryInterval     = 10 * time.Second
+	defaultMaxElapsedTime       = 30 * time.Second
 )
 
 // A Client represents a basic configuration to access a Nakadi instance. The client is used to configure
@@ -57,7 +61,7 @@ func New(url string, options *ClientOptions) *Client {
 }
 
 // httpGET fetches json encoded data with a GET request.
-func (c *Client) httpGET(url string, body interface{}, msg string) error {
+func (c *Client) httpGET(backOff backoff.BackOff, url string, body interface{}, msg string) error {
 	request, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return errors.Wrap(err, "unable to prepare request")
@@ -71,7 +75,12 @@ func (c *Client) httpGET(url string, body interface{}, msg string) error {
 		request.Header.Set("Authorization", "Bearer "+token)
 	}
 
-	response, err := c.httpClient.Do(request)
+	var response *http.Response
+	err = backoff.Retry(func() error {
+		response, err = c.httpClient.Do(request)
+		return err
+	}, backOff)
+
 	if err != nil {
 		return errors.Wrap(err, msg)
 	}
@@ -95,7 +104,7 @@ func (c *Client) httpGET(url string, body interface{}, msg string) error {
 }
 
 // httpPUT sends json encoded data via PUT request and returns a response.
-func (c *Client) httpPUT(url string, body interface{}) (*http.Response, error) {
+func (c *Client) httpPUT(backOff backoff.BackOff, url string, body interface{}) (*http.Response, error) {
 	encoded, err := json.Marshal(body)
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to encode json body")
@@ -115,11 +124,17 @@ func (c *Client) httpPUT(url string, body interface{}) (*http.Response, error) {
 		request.Header.Set("Authorization", "Bearer "+token)
 	}
 
-	return c.httpClient.Do(request)
+	var response *http.Response
+	err = backoff.Retry(func() error {
+		response, err = c.httpClient.Do(request)
+		return err
+	}, backOff)
+
+	return response, err
 }
 
 // httpPOST sends json encoded data via POST request and returns a response.
-func (c *Client) httpPOST(url string, body interface{}) (*http.Response, error) {
+func (c *Client) httpPOST(backOff backoff.BackOff, url string, body interface{}) (*http.Response, error) {
 	encoded, err := json.Marshal(body)
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to encode json body")
@@ -139,12 +154,18 @@ func (c *Client) httpPOST(url string, body interface{}) (*http.Response, error) 
 		request.Header.Set("Authorization", "Bearer "+token)
 	}
 
-	return c.httpClient.Do(request)
+	var response *http.Response
+	err = backoff.Retry(func() error {
+		response, err = c.httpClient.Do(request)
+		return err
+	}, backOff)
+
+	return response, err
 }
 
 // httpDELETE sends a DELETE request. On errors httpDELETE expects a response body to contain
 // an error message in the format of application/problem+json.
-func (c *Client) httpDELETE(url, msg string) error {
+func (c *Client) httpDELETE(backOff backoff.BackOff, url, msg string) error {
 	request, err := http.NewRequest("DELETE", url, nil)
 	if err != nil {
 		return errors.Wrap(err, "unable to prepare request")
@@ -158,7 +179,12 @@ func (c *Client) httpDELETE(url, msg string) error {
 		request.Header.Set("Authorization", "Bearer "+token)
 	}
 
-	response, err := c.httpClient.Do(request)
+	var response *http.Response
+	err = backoff.Retry(func() error {
+		response, err = c.httpClient.Do(request)
+		return err
+	}, backOff)
+
 	if err != nil {
 		return errors.Wrap(err, msg)
 	}

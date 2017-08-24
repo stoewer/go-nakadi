@@ -28,7 +28,7 @@ type StreamOptions struct {
 	// the retry intervals remain constant. This value is applied for stream initialization as well as
 	// for cursor commits.
 	MaxRetryInterval time.Duration
-	// CommitMaxElapsedTime is the maximum time spent on retries when committing a cursor. Once this value
+	// MaxElapsedTime is the maximum time spent on retries when committing a cursor. Once this value
 	// was reached the exponential backoff is halted and the cursor will not be committed.
 	CommitMaxElapsedTime time.Duration
 	// NotifyErr is called when an error occurs that leads to a retry. This notify function can be used to
@@ -39,56 +39,58 @@ type StreamOptions struct {
 	NotifyOK func()
 }
 
-// defaultStreamOptions provides some default values
-var defaultStreamOptions = StreamOptions{
-	InitialRetryInterval: time.Millisecond * 50,
-	MaxRetryInterval:     time.Minute,
-	CommitMaxElapsedTime: time.Minute * 2,
-}
-
-// NewStream is used to instantiate a new steam processing sub API. As for all sub APIs of the `go-nakadi`
-// package NewStream receives a configured Nakadi client. Furthermore a valid subscription ID must be
-// provided. Use the SubscriptionAPI in order to obtain subscriptions. The options parameter can be used
-// to configure the behavior of the stream. The options may be nil.
-func NewStream(client *Client, subscriptionID string, options *StreamOptions) *StreamAPI {
+func (o *StreamOptions) withDefaults() *StreamOptions {
 	var copyOptions StreamOptions
-	if options != nil {
-		copyOptions = *options
-		if copyOptions.InitialRetryInterval == 0 {
-			copyOptions.InitialRetryInterval = defaultStreamOptions.InitialRetryInterval
-		}
-		if copyOptions.MaxRetryInterval == 0 {
-			copyOptions.MaxRetryInterval = defaultStreamOptions.MaxRetryInterval
-		}
-		if copyOptions.CommitMaxElapsedTime == 0 {
-			copyOptions.CommitMaxElapsedTime = defaultStreamOptions.CommitMaxElapsedTime
-		}
-	} else {
-		copyOptions = defaultStreamOptions
+	if o != nil {
+		copyOptions = *o
 	}
-
+	if copyOptions.InitialRetryInterval == 0 {
+		copyOptions.InitialRetryInterval = defaultInitialRetryInterval
+	}
+	if copyOptions.MaxRetryInterval == 0 {
+		copyOptions.MaxRetryInterval = defaultMaxRetryInterval
+	}
+	if copyOptions.CommitMaxElapsedTime == 0 {
+		copyOptions.CommitMaxElapsedTime = defaultMaxElapsedTime
+	}
 	if copyOptions.NotifyErr == nil {
 		copyOptions.NotifyErr = func(_ error, _ time.Duration) {}
 	}
 	if copyOptions.NotifyOK == nil {
 		copyOptions.NotifyOK = func() {}
 	}
+	return &copyOptions
+}
+
+// defaultStreamOptions provides some default values
+//var defaultStreamOptions = StreamOptions{
+//	InitialRetryInterval: time.Millisecond * 50,
+//	MaxRetryInterval:     time.Minute,
+//	CommitMaxElapsedTime: time.Minute * 2,
+//}
+
+// NewStream is used to instantiate a new steam processing sub API. As for all sub APIs of the `go-nakadi`
+// package NewStream receives a configured Nakadi client. Furthermore a valid subscription ID must be
+// provided. Use the SubscriptionAPI in order to obtain subscriptions. The options parameter can be used
+// to configure the behavior of the stream. The options may be nil.
+func NewStream(client *Client, subscriptionID string, options *StreamOptions) *StreamAPI {
+	options = options.withDefaults()
 
 	ctx, cancel := context.WithCancel(context.Background())
 
 	streamBackOff := backoff.NewExponentialBackOff()
-	streamBackOff.InitialInterval = copyOptions.InitialRetryInterval
-	streamBackOff.MaxInterval = copyOptions.MaxRetryInterval
+	streamBackOff.InitialInterval = options.InitialRetryInterval
+	streamBackOff.MaxInterval = options.MaxRetryInterval
 
 	commitBackOff := backoff.NewExponentialBackOff()
-	commitBackOff.InitialInterval = copyOptions.InitialRetryInterval
-	commitBackOff.MaxInterval = copyOptions.MaxRetryInterval
+	commitBackOff.InitialInterval = options.InitialRetryInterval
+	commitBackOff.MaxInterval = options.MaxRetryInterval
 
-	s := &StreamAPI{
+	streamAPI := &StreamAPI{
 		opener: &simpleStreamOpener{
 			client:         client,
 			subscriptionID: subscriptionID,
-			batchLimit:     copyOptions.BatchLimit},
+			batchLimit:     options.BatchLimit},
 		committer: &simpleCommitter{
 			client:         client,
 			subscriptionID: subscriptionID},
@@ -97,13 +99,12 @@ func NewStream(client *Client, subscriptionID string, options *StreamOptions) *S
 		cancel:        cancel,
 		streamBackOff: backoff.WithContext(streamBackOff, ctx),
 		commitBackOff: backoff.WithContext(commitBackOff, ctx),
-		notifyErr:     copyOptions.NotifyErr,
-		notifyOK:      copyOptions.NotifyOK,
-	}
+		notifyErr:     options.NotifyErr,
+		notifyOK:      options.NotifyOK}
 
-	go s.startStream()
+	go streamAPI.startStream()
 
-	return s
+	return streamAPI
 }
 
 // A StreamAPI is a sub API which is used to consume events from a specific subscription using Nakadi's

@@ -3,7 +3,6 @@ package nakadi
 import (
 	"context"
 	"testing"
-
 	"time"
 
 	"github.com/cenkalti/backoff"

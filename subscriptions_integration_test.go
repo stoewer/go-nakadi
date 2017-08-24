@@ -20,7 +20,7 @@ func TestIntegrationSubscriptionAPI_Get(t *testing.T) {
 	defer helperDeleteSubscriptions(t, eventType, subscriptions...)
 
 	client := New(defaultNakadiURL, &ClientOptions{ConnectionTimeout: time.Second})
-	subAPI := NewSubscriptionAPI(client)
+	subAPI := NewSubscriptionAPI(client, &SubscriptionOptions{Retry: true})
 
 	t.Run("fail not found", func(t *testing.T) {
 		_, err := subAPI.Get("does-not-exist")
@@ -49,7 +49,7 @@ func TestIntegrationSubscriptionAPI_List(t *testing.T) {
 	defer helperDeleteSubscriptions(t, eventType, subscriptions...)
 
 	client := New(defaultNakadiURL, &ClientOptions{ConnectionTimeout: time.Second})
-	subAPI := NewSubscriptionAPI(client)
+	subAPI := NewSubscriptionAPI(client, nil)
 
 	fetched, err := subAPI.List()
 	require.NoError(t, err)
@@ -62,7 +62,7 @@ func TestIntegrationSubscriptionAPI_Create(t *testing.T) {
 	helperCreateEventTypes(t, eventType)
 
 	client := New(defaultNakadiURL, &ClientOptions{ConnectionTimeout: time.Second})
-	subAPI := NewSubscriptionAPI(client)
+	subAPI := NewSubscriptionAPI(client, nil)
 
 	t.Run("fail invalid subscription", func(t *testing.T) {
 		_, err := subAPI.Create(&Subscription{OwningApplication: "test-api"})
@@ -87,7 +87,7 @@ func TestIntegrationSubscriptionAPI_Delete(t *testing.T) {
 	defer helperDeleteSubscriptions(t, eventType, subscriptions...)
 
 	client := New(defaultNakadiURL, &ClientOptions{ConnectionTimeout: time.Second})
-	subAPI := NewSubscriptionAPI(client)
+	subAPI := NewSubscriptionAPI(client, nil)
 
 	t.Run("fail not found", func(t *testing.T) {
 		err := subAPI.Delete("does-not-exist")

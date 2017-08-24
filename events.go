@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/cenkalti/backoff"
 	"github.com/pkg/errors"
 )
 
@@ -48,21 +49,72 @@ type EventTypeOptions struct {
 	RetentionTime int64 `json:"retention_time"`
 }
 
+// EventOptions is a set of optional parameters used to configure the EventAPI.
+type EventOptions struct {
+	// Whether or not methods of the EventAPI retry when a request fails. If
+	// set to true InitialRetryInterval, MaxRetryInterval, and MaxElapsedTime have
+	// no effect (default: false).
+	Retry bool
+	// The initial (minimal) retry interval used for the exponential backoff algorithm
+	// when retry is enables.
+	InitialRetryInterval time.Duration
+	// MaxRetryInterval the maximum retry interval. Once the exponential backoff reaches
+	// this value the retry intervals remain constant.
+	MaxRetryInterval time.Duration
+	// MaxElapsedTime is the maximum time spent on retries when when performing a request.
+	// Once this value was reached the exponential backoff is halted and the request will
+	// fail with an error.
+	MaxElapsedTime time.Duration
+}
+
+func (o *EventOptions) withDefaults() *EventOptions {
+	var copyOptions EventOptions
+	if o != nil {
+		copyOptions = *o
+	}
+	if copyOptions.InitialRetryInterval == 0 {
+		copyOptions.InitialRetryInterval = defaultInitialRetryInterval
+	}
+	if copyOptions.MaxRetryInterval == 0 {
+		copyOptions.MaxRetryInterval = defaultMaxRetryInterval
+	}
+	if copyOptions.MaxElapsedTime == 0 {
+		copyOptions.MaxElapsedTime = defaultMaxElapsedTime
+	}
+	return &copyOptions
+}
+
 // NewEventAPI creates a new instance of a EventAPI implementation which can be used to
-// manage event types on a specific Nakadi service.
-func NewEventAPI(client *Client) *EventAPI {
-	return &EventAPI{client: client}
+// manage event types on a specific Nakadi service. The last parameter is a struct containing only
+// optional parameters. The options may be nil.
+func NewEventAPI(client *Client, options *EventOptions) *EventAPI {
+	options = options.withDefaults()
+
+	var backOff backoff.BackOff
+	if options.Retry {
+		back := backoff.NewExponentialBackOff()
+		back.InitialInterval = options.InitialRetryInterval
+		back.MaxInterval = options.MaxRetryInterval
+		back.MaxElapsedTime = options.MaxElapsedTime
+		backOff = back
+	} else {
+		backOff = &backoff.StopBackOff{}
+	}
+	return &EventAPI{
+		client:  client,
+		backOff: backOff}
 }
 
 // EventAPI is a sub API that allows to inspect and manage event types on a Nakadi instance.
 type EventAPI struct {
-	client *Client
+	client  *Client
+	backOff backoff.BackOff
 }
 
 // List returns all registered event types.
 func (e *EventAPI) List() ([]*EventType, error) {
 	eventTypes := []*EventType{}
-	err := e.client.httpGET(e.eventBaseURL(), &eventTypes, "unable to request event types")
+	err := e.client.httpGET(e.backOff, e.eventBaseURL(), &eventTypes, "unable to request event types")
 	if err != nil {
 		return nil, err
 	}
@@ -72,7 +124,7 @@ func (e *EventAPI) List() ([]*EventType, error) {
 // Get returns an event type based on its name.
 func (e *EventAPI) Get(name string) (*EventType, error) {
 	eventType := &EventType{}
-	err := e.client.httpGET(e.eventURL(name), eventType, "unable to request event types")
+	err := e.client.httpGET(e.backOff, e.eventURL(name), eventType, "unable to request event types")
 	if err != nil {
 		return nil, err
 	}
@@ -81,7 +133,7 @@ func (e *EventAPI) Get(name string) (*EventType, error) {
 
 // Create saves a new event type.
 func (e *EventAPI) Create(eventType *EventType) error {
-	response, err := e.client.httpPOST(e.eventBaseURL(), eventType)
+	response, err := e.client.httpPOST(e.backOff, e.eventBaseURL(), eventType)
 	if err != nil {
 		return errors.Wrap(err, "unable to create event type")
 	}
@@ -101,7 +153,7 @@ func (e *EventAPI) Create(eventType *EventType) error {
 
 // Update updates an existing event type.
 func (e *EventAPI) Update(eventType *EventType) error {
-	response, err := e.client.httpPUT(e.eventURL(eventType.Name), eventType)
+	response, err := e.client.httpPUT(e.backOff, e.eventURL(eventType.Name), eventType)
 	if err != nil {
 		return errors.Wrap(err, "unable to update event type")
 	}
@@ -121,7 +173,7 @@ func (e *EventAPI) Update(eventType *EventType) error {
 
 // Delete removes an event type.
 func (e *EventAPI) Delete(name string) error {
-	return e.client.httpDELETE(e.eventURL(name), "unable to delete event type")
+	return e.client.httpDELETE(e.backOff, e.eventURL(name), "unable to delete event type")
 }
 
 func (e *EventAPI) eventURL(name string) string {
