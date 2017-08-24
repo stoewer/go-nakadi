@@ -16,7 +16,7 @@ func TestStreamAPI_startStream(t *testing.T) {
 	okCh := make(chan struct{}, 1)
 
 	stream := &mockStreamer{}
-	_, opener, _, _ := setupMockStream(retryCh, okCh)
+	_, opener, _ := setupMockStream(retryCh, okCh)
 
 	opener.On("openStream").Once().Return(nil, assert.AnError)
 	opener.unblock <- struct{}{}
@@ -47,7 +47,7 @@ func TestStreamAPI_NextEvents(t *testing.T) {
 
 	t.Run("fail with error", func(t *testing.T) {
 		stream := &mockStreamer{unblock: make(chan struct{}, 1)}
-		streamAPI, opener, _, _ := setupMockStream(nil, nil)
+		streamAPI, opener, _ := setupMockStream(nil, nil)
 
 		opener.On("openStream").Once().Return(stream, nil)
 		opener.unblock <- struct{}{}
@@ -62,7 +62,7 @@ func TestStreamAPI_NextEvents(t *testing.T) {
 
 	t.Run("successful read events", func(t *testing.T) {
 		stream := &mockStreamer{unblock: make(chan struct{}, 1)}
-		streamAPI, opener, _, _ := setupMockStream(nil, nil)
+		streamAPI, opener, _ := setupMockStream(nil, nil)
 
 		opener.On("openStream").Once().Return(stream, nil)
 		opener.unblock <- struct{}{}
@@ -87,7 +87,7 @@ func TestStreamAPI_NextEvents(t *testing.T) {
 
 	t.Run("fail with canceled", func(t *testing.T) {
 		stream := &mockStreamer{unblock: make(chan struct{}, 1)}
-		streamAPI, opener, _, _ := setupMockStream(nil, nil)
+		streamAPI, opener, _ := setupMockStream(nil, nil)
 
 		opener.On("openStream").Once().Return(stream, nil)
 		opener.unblock <- struct{}{}
@@ -110,7 +110,7 @@ func TestStreamAPI_CommitCursor(t *testing.T) {
 	expectedCursor := Cursor{NakadiStreamID: "stream-id"}
 
 	t.Run("fail with time out", func(t *testing.T) {
-		streamAPI, _, committer, _ := setupMockStream(retryCh, okCh)
+		streamAPI, _, committer := setupMockStream(retryCh, okCh)
 		committer.On("commitCursor", expectedCursor).Twice().Return(assert.AnError)
 
 		go func() {
@@ -131,7 +131,7 @@ func TestStreamAPI_CommitCursor(t *testing.T) {
 	})
 
 	t.Run("fail retry succeed", func(t *testing.T) {
-		streamAPI, _, committer, _ := setupMockStream(retryCh, okCh)
+		streamAPI, _, committer := setupMockStream(retryCh, okCh)
 		committer.On("commitCursor", expectedCursor).Once().Return(assert.AnError)
 
 		go func() {
@@ -159,7 +159,7 @@ func TestStreamAPI_CommitCursor(t *testing.T) {
 	})
 
 	t.Run("success", func(t *testing.T) {
-		streamAPI, _, committer, _ := setupMockStream(nil, nil)
+		streamAPI, _, committer := setupMockStream(nil, nil)
 		committer.On("commitCursor", expectedCursor).Once().Return(nil)
 
 		committer.unblock <- struct{}{}
@@ -171,7 +171,7 @@ func TestStreamAPI_CommitCursor(t *testing.T) {
 
 func TestStreamAPI_Close(t *testing.T) {
 	errorCh := make(chan error, 1)
-	streamAPI, opener, _, _ := setupMockStream(nil, nil)
+	streamAPI, opener, _ := setupMockStream(nil, nil)
 
 	stream := &mockStreamer{unblock: make(chan struct{}, 1)}
 	opener.On("openStream").Once().Return(stream, nil)
@@ -184,15 +184,17 @@ func TestStreamAPI_Close(t *testing.T) {
 	}()
 
 	opener.unblock <- struct{}{}
-	time.Sleep(200 * time.Millisecond)
+	time.Sleep(50 * time.Millisecond)
 	stream.unblock <- struct{}{}
 
 	err := <-errorCh
 	assert.NoError(t, err)
-	// stream.AssertCalled(t, "closeStream")
+
+	<-streamAPI.eventCh
+	stream.AssertCalled(t, "closeStream")
 }
 
-func setupMockStream(errCh chan error, okCh chan struct{}) (*StreamAPI, *mockStreamOpener, *mockCommitter, context.CancelFunc) {
+func setupMockStream(errCh chan error, okCh chan struct{}) (*StreamAPI, *mockStreamOpener, *mockCommitter) {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	streamBackOff := backoff.NewExponentialBackOff()
@@ -230,7 +232,7 @@ func setupMockStream(errCh chan error, okCh chan struct{}) (*StreamAPI, *mockStr
 
 	go stream.startStream()
 
-	return stream, opener, committer, cancel
+	return stream, opener, committer
 }
 
 type mockStreamOpener struct {

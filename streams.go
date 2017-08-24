@@ -196,6 +196,7 @@ func (s *StreamAPI) startStream() {
 			if err != nil {
 				if err == context.Canceled {
 					stream.closeStream()
+					close(s.eventCh)
 					return
 				}
 				break
