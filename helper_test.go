@@ -46,3 +46,14 @@ func helperLoadTestData(t *testing.T, name string, target interface{}) []byte {
 	}
 	return bytes
 }
+
+func helperMakeCounter(n int) chan int {
+	counter := make(chan int)
+	go func() {
+		for i := 0; i <= n; i++ {
+			counter <- i
+		}
+		close(counter)
+	}()
+	return counter
+}

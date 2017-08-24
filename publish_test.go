@@ -2,10 +2,11 @@ package nakadi
 
 import (
 	"encoding/json"
-	"testing"
-
 	"fmt"
 	"net/http"
+	"testing"
+
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -58,7 +59,7 @@ func TestPublishAPI_Publish(t *testing.T) {
 	url := fmt.Sprintf("%s/event-types/%s/events", defaultNakadiURL, "test-event.undefined")
 
 	client := &Client{nakadiURL: defaultNakadiURL, httpClient: http.DefaultClient}
-	publishAPI := NewPublishAPI(client, "test-event.undefined")
+	publishAPI := NewPublishAPI(client, "test-event.undefined", nil)
 
 	t.Run("fail to connect", func(t *testing.T) {
 		httpmock.RegisterResponder("POST", url, httpmock.NewErrorResponder(assert.AnError))
@@ -149,7 +150,7 @@ func TestPublishAPI_PublishDataChangeEvent(t *testing.T) {
 	url := fmt.Sprintf("%s/event-types/%s/events", defaultNakadiURL, "test-event.data")
 
 	client := &Client{nakadiURL: defaultNakadiURL, httpClient: http.DefaultClient}
-	publishAPI := NewPublishAPI(client, "test-event.data")
+	publishAPI := NewPublishAPI(client, "test-event.data", nil)
 
 	httpmock.RegisterResponder("POST", url, httpmock.Responder(func(r *http.Request) (*http.Response, error) {
 		uploaded := []DataChangeEvent{}
@@ -174,7 +175,7 @@ func TestPublishAPI_PublishBusinessEvent(t *testing.T) {
 	url := fmt.Sprintf("%s/event-types/%s/events", defaultNakadiURL, "test-event.business")
 
 	client := &Client{nakadiURL: defaultNakadiURL, httpClient: http.DefaultClient}
-	publishAPI := NewPublishAPI(client, "test-event.business")
+	publishAPI := NewPublishAPI(client, "test-event.business", nil)
 
 	httpmock.RegisterResponder("POST", url, httpmock.Responder(func(r *http.Request) (*http.Response, error) {
 		uploaded := []BusinessEvent{}
@@ -187,4 +188,65 @@ func TestPublishAPI_PublishBusinessEvent(t *testing.T) {
 	err := publishAPI.PublishBusinessEvent(events)
 
 	assert.NoError(t, err)
+}
+
+func TestPublishOptions_withDefaults(t *testing.T) {
+	tests := []struct {
+		Options  *PublishOptions
+		Expected *PublishOptions
+	}{
+		{
+			Options: nil,
+			Expected: &PublishOptions{
+				InitialRetryInterval: defaultInitialRetryInterval,
+				MaxRetryInterval:     defaultMaxRetryInterval,
+				MaxElapsedTime:       defaultMaxElapsedTime,
+			},
+		},
+		{
+			Options: &PublishOptions{InitialRetryInterval: time.Hour},
+			Expected: &PublishOptions{
+				InitialRetryInterval: time.Hour,
+				MaxRetryInterval:     defaultMaxRetryInterval,
+				MaxElapsedTime:       defaultMaxElapsedTime,
+			},
+		},
+		{
+			Options: &PublishOptions{MaxRetryInterval: time.Hour},
+			Expected: &PublishOptions{
+				InitialRetryInterval: defaultInitialRetryInterval,
+				MaxRetryInterval:     time.Hour,
+				MaxElapsedTime:       defaultMaxElapsedTime,
+			},
+		},
+		{
+			Options: &PublishOptions{MaxElapsedTime: time.Hour},
+			Expected: &PublishOptions{
+				InitialRetryInterval: defaultInitialRetryInterval,
+				MaxRetryInterval:     defaultMaxRetryInterval,
+				MaxElapsedTime:       time.Hour,
+			},
+		},
+		{
+			Options: &PublishOptions{Retry: true},
+			Expected: &PublishOptions{
+				Retry:                true,
+				InitialRetryInterval: defaultInitialRetryInterval,
+				MaxRetryInterval:     defaultMaxRetryInterval,
+				MaxElapsedTime:       defaultMaxElapsedTime,
+			},
+		}, {
+			Options: &PublishOptions{Retry: true},
+			Expected: &PublishOptions{
+				Retry:                true,
+				InitialRetryInterval: defaultInitialRetryInterval,
+				MaxRetryInterval:     defaultMaxRetryInterval,
+				MaxElapsedTime:       defaultMaxElapsedTime,
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		assert.Equal(t, tt.Expected, tt.Options.withDefaults())
+	}
 }

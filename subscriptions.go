@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/cenkalti/backoff"
 	"github.com/pkg/errors"
 )
 
@@ -19,16 +20,66 @@ type Subscription struct {
 	CreatedAt         time.Time `json:"created_at,omitempty"`
 }
 
+// SubscriptionOptions is a set of optional parameters used to configure the SubscriptionAPI.
+type SubscriptionOptions struct {
+	// Whether or not methods of the SubscriptionAPI retry when a request fails. If
+	// set to true InitialRetryInterval, MaxRetryInterval, and MaxElapsedTime have
+	// no effect (default: false).
+	Retry bool
+	// The initial (minimal) retry interval used for the exponential backoff algorithm
+	// when retry is enables.
+	InitialRetryInterval time.Duration
+	// MaxRetryInterval the maximum retry interval. Once the exponential backoff reaches
+	// this value the retry intervals remain constant.
+	MaxRetryInterval time.Duration
+	// MaxElapsedTime is the maximum time spent on retries when when performing a request.
+	// Once this value was reached the exponential backoff is halted and the request will
+	// fail with an error.
+	MaxElapsedTime time.Duration
+}
+
+func (o *SubscriptionOptions) withDefaults() *SubscriptionOptions {
+	var copyOptions SubscriptionOptions
+	if o != nil {
+		copyOptions = *o
+	}
+	if copyOptions.InitialRetryInterval == 0 {
+		copyOptions.InitialRetryInterval = defaultInitialRetryInterval
+	}
+	if copyOptions.MaxRetryInterval == 0 {
+		copyOptions.MaxRetryInterval = defaultMaxRetryInterval
+	}
+	if copyOptions.MaxElapsedTime == 0 {
+		copyOptions.MaxElapsedTime = defaultMaxElapsedTime
+	}
+	return &copyOptions
+}
+
 // NewSubscriptionAPI crates a new instance of the SubscriptionAPI. As for all sub APIs of the `go-nakadi` package
-// NewSubscriptionAPI receives a configured Nakadi client.
-func NewSubscriptionAPI(client *Client) *SubscriptionAPI {
+// NewSubscriptionAPI receives a configured Nakadi client. The last parameter is a struct containing only optional \
+// parameters. The options may be nil.
+func NewSubscriptionAPI(client *Client, options *SubscriptionOptions) *SubscriptionAPI {
+	options = options.withDefaults()
+
+	var backOff backoff.BackOff
+	if options.Retry {
+		back := backoff.NewExponentialBackOff()
+		back.InitialInterval = options.InitialRetryInterval
+		back.MaxInterval = options.MaxRetryInterval
+		back.MaxElapsedTime = options.MaxElapsedTime
+		backOff = back
+	} else {
+		backOff = &backoff.StopBackOff{}
+	}
 	return &SubscriptionAPI{
-		client: client}
+		client:  client,
+		backOff: backOff}
 }
 
 // SubscriptionAPI is a sub API that is used to manage subscriptions.
 type SubscriptionAPI struct {
-	client *Client
+	client  *Client
+	backOff backoff.BackOff
 }
 
 // List returns all available subscriptions.
@@ -36,7 +87,7 @@ func (s *SubscriptionAPI) List() ([]*Subscription, error) {
 	subscriptions := struct {
 		Items []*Subscription `json:"items"`
 	}{}
-	err := s.client.httpGET(s.subBaseURL(), &subscriptions, "unable to request subscriptions")
+	err := s.client.httpGET(s.backOff, s.subBaseURL(), &subscriptions, "unable to request subscriptions")
 	if err != nil {
 		return nil, err
 	}
@@ -46,7 +97,7 @@ func (s *SubscriptionAPI) List() ([]*Subscription, error) {
 // Get obtains a single subscription identified by its ID.
 func (s *SubscriptionAPI) Get(id string) (*Subscription, error) {
 	subscription := &Subscription{}
-	err := s.client.httpGET(s.subURL(id), subscription, "unable to request subscription")
+	err := s.client.httpGET(s.backOff, s.subURL(id), subscription, "unable to request subscription")
 	if err != nil {
 		return nil, err
 	}
@@ -56,7 +107,7 @@ func (s *SubscriptionAPI) Get(id string) (*Subscription, error) {
 // Create initializes a new subscription. If the subscription already exists the pre existing subscription
 // is returned.
 func (s *SubscriptionAPI) Create(subscription *Subscription) (*Subscription, error) {
-	response, err := s.client.httpPOST(s.subBaseURL(), subscription)
+	response, err := s.client.httpPOST(s.backOff, s.subBaseURL(), subscription)
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to create subscription")
 	}
@@ -82,7 +133,7 @@ func (s *SubscriptionAPI) Create(subscription *Subscription) (*Subscription, err
 
 // Delete removes an existing subscription.
 func (s *SubscriptionAPI) Delete(id string) error {
-	return s.client.httpDELETE(s.subURL(id), "unable to delete subscription")
+	return s.client.httpDELETE(s.backOff, s.subURL(id), "unable to delete subscription")
 }
 
 func (s *SubscriptionAPI) subURL(id string) string {

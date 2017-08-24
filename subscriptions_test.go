@@ -6,6 +6,8 @@ import (
 	"net/http"
 	"testing"
 
+	"time"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gopkg.in/jarcoal/httpmock.v1"
@@ -29,7 +31,7 @@ func TestSubscriptionAPI_Get(t *testing.T) {
 	serialized := helperLoadTestData(t, "subscription.json", expected)
 
 	client := &Client{nakadiURL: defaultNakadiURL, httpClient: http.DefaultClient}
-	api := NewSubscriptionAPI(client)
+	api := NewSubscriptionAPI(client, nil)
 	url := fmt.Sprintf("%s/subscriptions/%s", defaultNakadiURL, expected.ID)
 
 	t.Run("fail connection error", func(t *testing.T) {
@@ -84,7 +86,7 @@ func TestSubscriptionAPI_List(t *testing.T) {
 	helperLoadTestData(t, "subscriptions.json", &expected.Items)
 
 	client := &Client{nakadiURL: defaultNakadiURL, httpClient: http.DefaultClient}
-	api := NewSubscriptionAPI(client)
+	api := NewSubscriptionAPI(client, nil)
 	url := fmt.Sprintf("%s/subscriptions", defaultNakadiURL)
 
 	t.Run("fail connection error", func(t *testing.T) {
@@ -140,7 +142,7 @@ func TestSubscriptionAPI_Create(t *testing.T) {
 	serialized := helperLoadTestData(t, "subscription.json", expected)
 
 	client := &Client{nakadiURL: defaultNakadiURL, httpClient: http.DefaultClient}
-	api := NewSubscriptionAPI(client)
+	api := NewSubscriptionAPI(client, nil)
 	url := fmt.Sprintf("%s/subscriptions", defaultNakadiURL)
 
 	t.Run("fail connection error", func(t *testing.T) {
@@ -196,7 +198,7 @@ func TestSubscriptionAPI_Delete(t *testing.T) {
 	id := "7dd69d58-7f20-11e7-9748-133d6a0dbfb3"
 
 	client := &Client{nakadiURL: defaultNakadiURL, httpClient: http.DefaultClient}
-	api := NewSubscriptionAPI(client)
+	api := NewSubscriptionAPI(client, nil)
 	url := fmt.Sprintf("%s/subscriptions/%s", defaultNakadiURL, id)
 
 	t.Run("fail connection error", func(t *testing.T) {
@@ -230,4 +232,57 @@ func TestSubscriptionAPI_Delete(t *testing.T) {
 		err := api.Delete(id)
 		assert.NoError(t, err)
 	})
+}
+
+func TestSubscriptionOptions_withDefaults(t *testing.T) {
+	tests := []struct {
+		Options  *SubscriptionOptions
+		Expected *SubscriptionOptions
+	}{
+		{
+			Options: nil,
+			Expected: &SubscriptionOptions{
+				InitialRetryInterval: defaultInitialRetryInterval,
+				MaxRetryInterval:     defaultMaxRetryInterval,
+				MaxElapsedTime:       defaultMaxElapsedTime,
+			},
+		},
+		{
+			Options: &SubscriptionOptions{InitialRetryInterval: time.Hour},
+			Expected: &SubscriptionOptions{
+				InitialRetryInterval: time.Hour,
+				MaxRetryInterval:     defaultMaxRetryInterval,
+				MaxElapsedTime:       defaultMaxElapsedTime,
+			},
+		},
+		{
+			Options: &SubscriptionOptions{MaxRetryInterval: time.Hour},
+			Expected: &SubscriptionOptions{
+				InitialRetryInterval: defaultInitialRetryInterval,
+				MaxRetryInterval:     time.Hour,
+				MaxElapsedTime:       defaultMaxElapsedTime,
+			},
+		},
+		{
+			Options: &SubscriptionOptions{MaxElapsedTime: time.Hour},
+			Expected: &SubscriptionOptions{
+				InitialRetryInterval: defaultInitialRetryInterval,
+				MaxRetryInterval:     defaultMaxRetryInterval,
+				MaxElapsedTime:       time.Hour,
+			},
+		},
+		{
+			Options: &SubscriptionOptions{Retry: true},
+			Expected: &SubscriptionOptions{
+				Retry:                true,
+				InitialRetryInterval: defaultInitialRetryInterval,
+				MaxRetryInterval:     defaultMaxRetryInterval,
+				MaxElapsedTime:       defaultMaxElapsedTime,
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		assert.Equal(t, tt.Expected, tt.Options.withDefaults())
+	}
 }
