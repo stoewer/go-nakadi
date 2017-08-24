@@ -34,28 +34,29 @@ type ClientOptions struct {
 	ConnectionTimeout time.Duration
 }
 
+func (o *ClientOptions) withDefaults() *ClientOptions {
+	var copyOptions ClientOptions
+	if o != nil {
+		copyOptions = *o
+	}
+	if copyOptions.ConnectionTimeout == 0 {
+		copyOptions.ConnectionTimeout = defaultTimeOut
+	}
+	return &copyOptions
+}
+
 // New creates a new Nakadi client. New receives the URL of the Nakadi instance the client should connect to.
 // In addition the second parameter options can be used to configure the behavior of the client and of all sub
 // APIs in this package. The options may be nil.
 func New(url string, options *ClientOptions) *Client {
-	var client *Client
-	if options == nil {
-		client = &Client{
-			nakadiURL: url,
-			timeout:   defaultTimeOut}
-	} else {
-		client = &Client{
-			nakadiURL:     url,
-			timeout:       options.ConnectionTimeout,
-			tokenProvider: options.TokenProvider}
+	options = options.withDefaults()
 
-		if client.timeout == 0 {
-			client.timeout = defaultTimeOut
-		}
-	}
-
-	client.httpClient = newHTTPClient(client.timeout)
-	client.httpStreamClient = newHTTPStream(client.timeout)
+	client := &Client{
+		nakadiURL:        url,
+		timeout:          options.ConnectionTimeout,
+		tokenProvider:    options.TokenProvider,
+		httpClient:       newHTTPClient(options.ConnectionTimeout),
+		httpStreamClient: newHTTPStream(options.ConnectionTimeout)}
 
 	return client
 }
