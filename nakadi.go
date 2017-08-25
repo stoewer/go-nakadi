@@ -1,3 +1,5 @@
+// Package nakadi is a client library for the Nakadi event broker. It provides convenient access
+// to many features of Nakadi's API.
 package nakadi
 
 import (
