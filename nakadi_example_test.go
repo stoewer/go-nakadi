@@ -1,5 +1,3 @@
-// +build integration
-
 package nakadi_test
 
 import (
@@ -10,7 +8,7 @@ import (
 	"github.com/stoewer/go-nakadi"
 )
 
-func ExampleDocBasic() {
+func Example_complete() {
 	//  create a new client
 	client := nakadi.New("http://localhost:8080", &nakadi.ClientOptions{ConnectionTimeout: 500 * time.Millisecond})
 
