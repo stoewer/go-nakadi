@@ -66,13 +66,6 @@ func (o *StreamOptions) withDefaults() *StreamOptions {
 	return &copyOptions
 }
 
-// defaultStreamOptions provides some default values
-//var defaultStreamOptions = StreamOptions{
-//	InitialRetryInterval: time.Millisecond * 50,
-//	MaxRetryInterval:     time.Minute,
-//	CommitMaxElapsedTime: time.Minute * 2,
-//}
-
 // NewStream is used to instantiate a new steam processing sub API. As for all sub APIs of the `go-nakadi`
 // package NewStream receives a configured Nakadi client. Furthermore a valid subscription ID must be
 // provided. Use the SubscriptionAPI in order to obtain subscriptions. The options parameter can be used
