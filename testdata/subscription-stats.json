@@ -1,0 +1,57 @@
+{
+  "items": [
+    {
+      "event_type": "test-event.data",
+      "partitions": [
+        {
+          "partition": "0",
+          "state": "unassigned",
+          "unconsumed_events": 6892,
+          "stream_id": ""
+        },
+        {
+          "partition": "1",
+          "state": "unassigned",
+          "unconsumed_events": 5996,
+          "stream_id": ""
+        },
+        {
+          "partition": "2",
+          "state": "unassigned",
+          "unconsumed_events": 6338,
+          "stream_id": ""
+        },
+        {
+          "partition": "3",
+          "state": "unassigned",
+          "unconsumed_events": 7267,
+          "stream_id": ""
+        },
+        {
+          "partition": "4",
+          "state": "unassigned",
+          "unconsumed_events": 7242,
+          "stream_id": ""
+        },
+        {
+          "partition": "5",
+          "state": "unassigned",
+          "unconsumed_events": 6471,
+          "stream_id": ""
+        },
+        {
+          "partition": "6",
+          "state": "unassigned",
+          "unconsumed_events": 6352,
+          "stream_id": ""
+        },
+        {
+          "partition": "7",
+          "state": "unassigned",
+          "unconsumed_events": 6896,
+          "stream_id": ""
+        }
+      ]
+    }
+  ]
+}
