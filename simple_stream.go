@@ -20,6 +20,9 @@ type simpleStreamOpener struct {
 
 func (so *simpleStreamOpener) openStream() (streamer, error) {
 	req, err := http.NewRequest("GET", so.streamURL(so.subscriptionID), nil)
+	if err != nil {
+		return nil, errors.Wrap(err, "unable to create request")
+	}
 	if so.client.tokenProvider != nil {
 		token, err := so.client.tokenProvider()
 		if err != nil {
@@ -122,6 +125,9 @@ func (s *simpleCommitter) commitCursor(cursor Cursor) error {
 	}
 
 	req, err := http.NewRequest("POST", s.commitURL(s.subscriptionID), bytes.NewReader(data))
+	if err != nil {
+		return errors.Wrap(err, "unable to create request")
+	}
 	req.Header.Set("Content-Type", "application/json;charset=UTF-8")
 	req.Header.Set("X-Nakadi-StreamId", cursor.NakadiStreamID)
 	if s.client.tokenProvider != nil {

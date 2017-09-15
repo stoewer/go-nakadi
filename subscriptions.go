@@ -136,6 +136,33 @@ func (s *SubscriptionAPI) Delete(id string) error {
 	return s.client.httpDELETE(s.backOff, s.subURL(id), "unable to delete subscription")
 }
 
+// SubscriptionStats represents detailed statistics for the subscription
+type SubscriptionStats struct {
+	EventType  string            `json:"event_type"`
+	Partitions []*PartitionStats `json:"partitions"`
+}
+
+// PartitionStats represents statistic information for the particular partiion
+type PartitionStats struct {
+	Partition        string `json:"partition"`
+	State            string `json:"state"`
+	UnconsumedEvents int    `json:"unconsumed_events"`
+	StreamID         string `json:"stream_id"`
+}
+
+type statsResponse struct {
+	Items []*SubscriptionStats `json:"items"`
+}
+
+// GetStats returns statistic information for subscription
+func (s *SubscriptionAPI) GetStats(id string) ([]*SubscriptionStats, error) {
+	stats := &statsResponse{}
+	if err := s.client.httpGET(s.backOff, s.subURL(id)+"/stats", stats, "unable to get stats for subscription"); err != nil {
+		return nil, err
+	}
+	return stats.Items, nil
+}
+
 func (s *SubscriptionAPI) subURL(id string) string {
 	return fmt.Sprintf("%s/subscriptions/%s", s.client.nakadiURL, id)
 }

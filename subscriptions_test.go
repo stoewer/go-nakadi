@@ -234,6 +234,72 @@ func TestSubscriptionAPI_Delete(t *testing.T) {
 	})
 }
 
+func TestSubscriptionAPI_GetStats(t *testing.T) {
+	httpmock.Activate()
+	defer httpmock.DeactivateAndReset()
+
+	id := "7dd69d58-7f20-11e7-9748-133d6a0dbfb3"
+
+	client := &Client{nakadiURL: defaultNakadiURL, httpClient: http.DefaultClient}
+	api := NewSubscriptionAPI(client, nil)
+	url := fmt.Sprintf("%s/subscriptions/%s/stats", defaultNakadiURL, id)
+
+	t.Run("fail connection error", func(t *testing.T) {
+		httpmock.RegisterResponder("GET", url, httpmock.NewErrorResponder(assert.AnError))
+
+		stats, err := api.GetStats(id)
+		require.Error(t, err)
+		require.Nil(t, stats)
+		assert.Regexp(t, assert.AnError, err)
+
+	})
+	t.Run("fail decode error", func(t *testing.T) {
+		httpmock.RegisterResponder("GET", url, httpmock.NewStringResponder(http.StatusInternalServerError, ""))
+
+		stats, err := api.GetStats(id)
+		require.Error(t, err)
+		require.Nil(t, stats)
+		assert.Regexp(t, "unable to decode response body", err)
+	})
+
+	t.Run("fail with problem", func(t *testing.T) {
+		problem := `{"detail": "not found"}`
+		httpmock.RegisterResponder("GET", url, httpmock.NewStringResponder(http.StatusInternalServerError, problem))
+
+		stats, err := api.GetStats(id)
+		require.Error(t, err)
+		require.Nil(t, stats)
+		assert.Regexp(t, "not found", err)
+	})
+
+	t.Run("fail decode response", func(t *testing.T) {
+		httpmock.RegisterResponder("GET", url, httpmock.NewStringResponder(http.StatusOK, ""))
+
+		stats, err := api.GetStats(id)
+		require.Error(t, err)
+		require.Nil(t, stats)
+		assert.Regexp(t, "unable to decode response body", err)
+	})
+
+	t.Run("success", func(t *testing.T) {
+		expected := struct {
+			Items json.RawMessage `json:"items"`
+		}{}
+		_ = helperLoadTestData(t, "subscription-stats.json", &expected)
+
+		responder, err := httpmock.NewJsonResponder(http.StatusOK, expected)
+		require.NoError(t, err)
+		httpmock.RegisterResponder("GET", url, responder)
+
+		stats, err := api.GetStats(id)
+		require.NoError(t, err)
+		require.NotNil(t, stats)
+		actual, err := json.Marshal(stats)
+		require.NoError(t, err)
+		assert.JSONEq(t, string(expected.Items), string(actual))
+	})
+}
+
 func TestSubscriptionOptions_withDefaults(t *testing.T) {
 	tests := []struct {
 		Options  *SubscriptionOptions

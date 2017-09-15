@@ -1,0 +1,13 @@
+[
+    {
+        "event_type": "test-event.change",
+        "partitions": [
+            {
+                "partition": "0",
+                "state": "unassigned",
+                "unconsumed_events": 0,
+                "stream_id": ""
+            }
+        ]
+    }
+]
