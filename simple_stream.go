@@ -20,6 +20,9 @@ type simpleStreamOpener struct {
 
 func (so *simpleStreamOpener) openStream() (streamer, error) {
 	req, err := http.NewRequest("GET", so.streamURL(so.subscriptionID), nil)
+	if err != nil {
+		return nil, errors.Wrap(err, "unable to create request")
+	}
 	if so.client.tokenProvider != nil {
 		token, err := so.client.tokenProvider()
 		if err != nil {
