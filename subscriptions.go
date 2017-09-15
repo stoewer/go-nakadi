@@ -154,7 +154,7 @@ type statsResponse struct {
 	Items []*SubscriptionStats `json:"items"`
 }
 
-// GetStats removes an existing subscription.
+// GetStats returns statistic information for subscription
 func (s *SubscriptionAPI) GetStats(id string) ([]*SubscriptionStats, error) {
 	stats := &statsResponse{}
 	if err := s.client.httpGET(s.backOff, s.subURL(id)+"/stats", stats, "unable to get stats for subscription"); err != nil {
