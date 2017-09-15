@@ -103,6 +103,30 @@ func TestIntegrationSubscriptionAPI_Delete(t *testing.T) {
 	})
 }
 
+func TestIntegrationSubscriptionAPI_GetStats(t *testing.T) {
+	eventType := &EventType{}
+	helperLoadTestData(t, "event-type-create.json", eventType)
+	expected := helperLoadTestData(t, "subscription-stats-integration.json", nil)
+	helperCreateEventTypes(t, eventType)
+
+	client := New(defaultNakadiURL, &ClientOptions{ConnectionTimeout: time.Second})
+	subAPI := NewSubscriptionAPI(client, &SubscriptionOptions{Retry: true})
+
+	subscription := &Subscription{OwningApplication: "test-app-stats", EventTypes: []string{eventType.Name}}
+	subscription, err := subAPI.Create(subscription)
+	require.NoError(t, err)
+	defer subAPI.Delete(subscription.ID)
+
+	stats, err := subAPI.GetStats(subscription.ID)
+	require.NotNil(t, stats)
+	require.NoError(t, err)
+	assert.Equal(t, subscription.EventTypes[0], stats[0].EventType)
+
+	actual, _ := json.Marshal(stats)
+	t.Log(string(actual))
+	assert.JSONEq(t, string(expected), string(actual))
+}
+
 func helperCreateSubscriptions(t *testing.T, eventType *EventType, subscription ...*Subscription) []*Subscription {
 	helperCreateEventTypes(t, eventType)
 	var subscriptions []*Subscription
