@@ -20,7 +20,7 @@ type Cursor struct {
 // StreamOptions contains optional parameters that are used to create a StreamAPI.
 type StreamOptions struct {
 	// The maximum number of Events in each chunk (and therefore per partition) of the stream (default: 1)
-	BatchLimit int
+	BatchLimit uint
 	// The initial (minimal) retry interval used for the exponential backoff. This value is applied for
 	// stream initialization as well as for cursor commits.
 	InitialRetryInterval time.Duration
