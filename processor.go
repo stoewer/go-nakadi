@@ -2,6 +2,7 @@ package nakadi
 
 import (
 	"context"
+	"math/rand"
 	"sync"
 	"time"
 
@@ -146,11 +147,23 @@ func (p *Processor) Start(operation func(int, []byte) error) error {
 		return errors.New("processor was already started")
 	}
 
-	for i, options := range p.streamOptions {
-		stream := p.newStream(p.client, p.subscriptionID, &options)
-		p.streams = append(p.streams, stream)
+	p.streams = make([]streamAPI, len(p.streamOptions))
 
+	for i, options := range p.streamOptions {
 		go func() {
+			stream := p.newStream(p.client, p.subscriptionID, &options)
+			p.streams[i] = stream
+
+			if p.timePerBatchPerStream > 0 {
+				initialWait := rand.Int63n(int64(p.timePerBatchPerStream))
+				select {
+				case <-p.ctx.Done():
+					return
+				case <-time.After(time.Duration(initialWait)):
+					// nothing
+				}
+			}
+
 			for {
 				start := time.Now()
 
