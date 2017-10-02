@@ -149,10 +149,10 @@ func (p *Processor) Start(operation func(int, []byte) error) error {
 
 	p.streams = make([]streamAPI, len(p.streamOptions))
 
-	for i, options := range p.streamOptions {
-		go func() {
-			stream := p.newStream(p.client, p.subscriptionID, &options)
-			p.streams[i] = stream
+	for i, o := range p.streamOptions {
+
+		go func(streamNo int, options StreamOptions) {
+			p.streams[streamNo] = p.newStream(p.client, p.subscriptionID, &options)
 
 			if p.timePerBatchPerStream > 0 {
 				initialWait := rand.Int63n(int64(p.timePerBatchPerStream))
@@ -171,21 +171,21 @@ func (p *Processor) Start(operation func(int, []byte) error) error {
 				case <-p.ctx.Done():
 					return
 				default:
-					cursor, events, err := stream.NextEvents()
+					cursor, events, err := p.streams[streamNo].NextEvents()
 					if err != nil {
 						continue
 					}
 
-					err = operation(i, events)
+					err = operation(streamNo, events)
 					if err != nil {
 						p.Lock()
-						p.streams[i].Close()
-						p.streams[i] = p.newStream(p.client, p.subscriptionID, &options)
+						p.streams[streamNo].Close()
+						p.streams[streamNo] = p.newStream(p.client, p.subscriptionID, &options)
 						p.Unlock()
 						continue
 					}
 
-					stream.CommitCursor(cursor)
+					p.streams[streamNo].CommitCursor(cursor)
 				}
 
 				elapsed := time.Since(start)
@@ -198,7 +198,8 @@ func (p *Processor) Start(operation func(int, []byte) error) error {
 					}
 				}
 			}
-		}()
+
+		}(i, o)
 	}
 
 	return nil
