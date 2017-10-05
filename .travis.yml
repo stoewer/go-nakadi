@@ -48,7 +48,7 @@ before_script:
 - (cd nakadi && ./gradlew startNakadi)
 
 script:
-- go vet -race .
+- go vet -v
 - golint -set_exit_status .
 - go test -v -tags=integration -covermode=count -coverprofile=profile.cov .
 
