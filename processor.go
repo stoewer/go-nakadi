@@ -27,7 +27,7 @@ type ProcessorOptions struct {
 	// the retry intervals remain constant. This value is applied for stream initialization as well as
 	// for cursor commits.
 	MaxRetryInterval time.Duration
-	// MaxElapsedTime is the maximum time spent on retries when committing a cursor. Once this value
+	// CommitMaxElapsedTime is the maximum time spent on retries when committing a cursor. Once this value
 	// was reached the exponential backoff is halted and the cursor will not be committed.
 	CommitMaxElapsedTime time.Duration
 	// NotifyErr is called when an error occurs that leads to a retry. This notify function can be used to
@@ -79,7 +79,7 @@ type streamAPI interface {
 }
 
 // NewProcessor creates a new processor for a given subscription ID.  The constructor receives a
-// configured Nakadi client as first parameter. Furthermore the a valid subscription ID must be
+// configured Nakadi client as first parameter. Furthermore a valid subscription ID must be
 // provided. The last parameter is a struct containing only optional parameters. The options may be
 // nil, in this case the processor falls back to the defaults defined in the ProcessorOptions.
 func NewProcessor(client *Client, subscriptionID string, options *ProcessorOptions) *Processor {
@@ -155,7 +155,6 @@ func (p *Processor) Start(operation func(int, []byte) error) error {
 
 	return nil
 }
-
 
 // startSingleStream starts a single stream with a given stream number / position. After the stream has been
 // started it consumes events. In cases of errors the stream is closed and a new stream will be opened.
