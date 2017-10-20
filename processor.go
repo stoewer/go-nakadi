@@ -149,60 +149,63 @@ func (p *Processor) Start(operation func(int, []byte) error) error {
 
 	p.streams = make([]streamAPI, len(p.streamOptions))
 
-	for i, o := range p.streamOptions {
-
-		go func(streamNo int, options StreamOptions) {
-			p.streams[streamNo] = p.newStream(p.client, p.subscriptionID, &options)
-
-			if p.timePerBatchPerStream > 0 {
-				initialWait := rand.Int63n(int64(p.timePerBatchPerStream))
-				select {
-				case <-p.ctx.Done():
-					return
-				case <-time.After(time.Duration(initialWait)):
-					// nothing
-				}
-			}
-
-			for {
-				start := time.Now()
-
-				select {
-				case <-p.ctx.Done():
-					return
-				default:
-					cursor, events, err := p.streams[streamNo].NextEvents()
-					if err != nil {
-						continue
-					}
-
-					err = operation(streamNo, events)
-					if err != nil {
-						p.Lock()
-						p.streams[streamNo].Close()
-						p.streams[streamNo] = p.newStream(p.client, p.subscriptionID, &options)
-						p.Unlock()
-						continue
-					}
-
-					p.streams[streamNo].CommitCursor(cursor)
-				}
-
-				elapsed := time.Since(start)
-				if elapsed < p.timePerBatchPerStream {
-					select {
-					case <-p.ctx.Done():
-						return
-					case <-time.After(p.timePerBatchPerStream - elapsed):
-						// nothing
-					}
-				}
-			}
-
-		}(i, o)
+	for streamNo, options := range p.streamOptions {
+		go p.startSingleStream(operation, streamNo, options)
 	}
 
 	return nil
+}
+
+
+// startSingleStream starts a single stream with a given stream number / position. After the stream has been
+// started it consumes events. In cases of errors the stream is closed and a new stream will be opened.
+func (p *Processor) startSingleStream(operation func(int, []byte) error, streamNo int, options StreamOptions) {
+	p.streams[streamNo] = p.newStream(p.client, p.subscriptionID, &options)
+
+	if p.timePerBatchPerStream > 0 {
+		initialWait := rand.Int63n(int64(p.timePerBatchPerStream))
+		select {
+		case <-p.ctx.Done():
+			return
+		case <-time.After(time.Duration(initialWait)):
+			// nothing
+		}
+	}
+
+	for {
+		start := time.Now()
+
+		select {
+		case <-p.ctx.Done():
+			return
+		default:
+			cursor, events, err := p.streams[streamNo].NextEvents()
+			if err != nil {
+				continue
+			}
+
+			err = operation(streamNo, events)
+			if err != nil {
+				p.Lock()
+				p.streams[streamNo].Close()
+				p.streams[streamNo] = p.newStream(p.client, p.subscriptionID, &options)
+				p.Unlock()
+				continue
+			}
+
+			p.streams[streamNo].CommitCursor(cursor)
+		}
+
+		elapsed := time.Since(start)
+		if elapsed < p.timePerBatchPerStream {
+			select {
+			case <-p.ctx.Done():
+				return
+			case <-time.After(p.timePerBatchPerStream - elapsed):
+				// nothing
+			}
+		}
+	}
 }
 
 // Stop halts all steams and terminates event processing. Stop will return with an error if the processor
