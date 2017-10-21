@@ -34,7 +34,7 @@ func TestIntegrationProcessor(t *testing.T) {
 	eventCh := make(chan DataChangeEvent, 1)
 
 	processor := NewProcessor(client, subscription.ID, &ProcessorOptions{BatchLimit: 2, EventsPerMinute: 60})
-	processor.Start(func(i int, rawEvents []byte) error {
+	processor.Start(func(i int, id string, rawEvents []byte) error {
 		events := []DataChangeEvent{}
 		err := json.Unmarshal(rawEvents, &events)
 		assert.NoError(t, err)

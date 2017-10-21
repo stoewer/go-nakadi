@@ -132,7 +132,7 @@ func TestProcessor_Start(t *testing.T) {
 		_, s, processor := setupMockProcessor()
 		processor.streams = []streamAPI{s}
 
-		err := processor.Start(func(i int, batch []byte) error { return nil })
+		err := processor.Start(func(i int, id string, batch []byte) error { return nil })
 		require.Error(t, err)
 		assert.Regexp(t, "processor was already started", err)
 	})
@@ -145,7 +145,7 @@ func TestProcessor_Start(t *testing.T) {
 		streamAPI.On("NextEvents").
 			Return(Cursor{}, nil, assert.AnError)
 
-		processor.Start(func(i int, batch []byte) error {
+		processor.Start(func(i int, id string, batch []byte) error {
 			assert.Fail(t, "operator should not be called")
 			return nil
 		})
@@ -168,7 +168,7 @@ func TestProcessor_Start(t *testing.T) {
 		streamAPI.On("NextEvents").
 			Return(Cursor{}, []byte("batch no 1"), nil)
 
-		processor.Start(func(i int, batch []byte) error {
+		processor.Start(func(i int, id string, batch []byte) error {
 			batchCh <- batch
 			return assert.AnError
 		})
@@ -200,7 +200,7 @@ func TestProcessor_Start(t *testing.T) {
 		streamAPI.On("NextEvents").
 			Return(Cursor{}, []byte("batch no 1"), nil)
 
-		processor.Start(func(i int, batch []byte) error {
+		processor.Start(func(i int, id string, batch []byte) error {
 			batchCh <- batch
 			return nil
 		})
@@ -249,7 +249,7 @@ func TestProcessor_Stop(t *testing.T) {
 		streamAPI.On("Close").
 			Return(assert.AnError)
 
-		processor.Start(func(i int, batch []byte) error {
+		processor.Start(func(i int, id string, batch []byte) error {
 			return nil
 		})
 
@@ -274,7 +274,7 @@ func TestProcessor_Stop(t *testing.T) {
 		streamAPI.On("Close").
 			Return(nil)
 
-		processor.Start(func(i int, batch []byte) error {
+		processor.Start(func(i int, id string, batch []byte) error {
 			return nil
 		})
 

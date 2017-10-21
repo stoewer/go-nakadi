@@ -132,6 +132,12 @@ type Processor struct {
 	cancel                context.CancelFunc
 }
 
+// Operation defines a certain procedure that consumes the event data from a processor. An operation,
+// can either be successful or may fail with an error. Operation receives three parameters: the stream
+// number or position in the processor, the Nakadi stream id of the underlying stream, and the json
+// encoded event payload.
+type Operation func(int, string, []byte) error
+
 // Start begins event processing. All event batches received from the underlying streams are passed to
 // the operation function. If the operation function terminates without error the respective cursor will
 // be automatically committed to Nakadi. If the operations terminates with an error, the underlying stream
@@ -139,7 +145,7 @@ type Processor struct {
 //
 // Event processing will go on indefinitely unless the processor is stopped via its Stop method. Star will
 // return an error if the processor is already running.
-func (p *Processor) Start(operation func(int, []byte) error) error {
+func (p *Processor) Start(operation Operation) error {
 	p.Lock()
 	defer p.Unlock()
 
@@ -158,7 +164,7 @@ func (p *Processor) Start(operation func(int, []byte) error) error {
 
 // startSingleStream starts a single stream with a given stream number / position. After the stream has been
 // started it consumes events. In cases of errors the stream is closed and a new stream will be opened.
-func (p *Processor) startSingleStream(operation func(int, []byte) error, streamNo int, options StreamOptions) {
+func (p *Processor) startSingleStream(operation Operation, streamNo int, options StreamOptions) {
 	p.streams[streamNo] = p.newStream(p.client, p.subscriptionID, &options)
 
 	if p.timePerBatchPerStream > 0 {
@@ -183,7 +189,7 @@ func (p *Processor) startSingleStream(operation func(int, []byte) error, streamN
 				continue
 			}
 
-			err = operation(streamNo, events)
+			err = operation(streamNo, cursor.NakadiStreamID, events)
 			if err != nil {
 				p.Lock()
 				p.streams[streamNo].Close()
