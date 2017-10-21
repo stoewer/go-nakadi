@@ -36,6 +36,15 @@ func TestProblemJSON_Marshal(t *testing.T) {
 	assert.JSONEq(t, string(expected), string(serialized))
 }
 
+func TestErrorJSON_Marshal(t *testing.T) {
+	errJSON := &errorJSON{}
+	expected := helperLoadTestData(t, "error-json.json", errJSON)
+
+	serialized, err := json.Marshal(errJSON)
+	require.NoError(t, err)
+	assert.JSONEq(t, string(expected), string(serialized))
+}
+
 func helperLoadTestData(t *testing.T, name string, target interface{}) []byte {
 	path := filepath.Join("testdata", name)
 	bytes, err := ioutil.ReadFile(path)

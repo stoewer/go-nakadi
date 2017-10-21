@@ -77,11 +77,11 @@ func TestPublishAPI_Publish(t *testing.T) {
 		require.Error(t, err)
 		assert.Regexp(t, "unable to decode response body", err)
 
-		httpmock.RegisterResponder("POST", url, httpmock.NewStringResponder(http.StatusUnauthorized, ""))
+		httpmock.RegisterResponder("POST", url, httpmock.NewStringResponder(http.StatusUnauthorized, "most-likely-stacktrace"))
 
 		err = publishAPI.Publish(events)
 		require.Error(t, err)
-		assert.Regexp(t, "unable to decode response body", err)
+		assert.Regexp(t, "unable to request event types: most-likely-stacktrace", err)
 	})
 
 	t.Run("fail multi status", func(t *testing.T) {

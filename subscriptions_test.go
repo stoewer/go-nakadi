@@ -43,11 +43,11 @@ func TestSubscriptionAPI_Get(t *testing.T) {
 	})
 
 	t.Run("fail decode error", func(t *testing.T) {
-		httpmock.RegisterResponder("GET", url, httpmock.NewStringResponder(http.StatusNotFound, ""))
+		httpmock.RegisterResponder("GET", url, httpmock.NewStringResponder(http.StatusNotFound, "most-likely-stacktrace"))
 
 		_, err := api.Get(expected.ID)
 		require.Error(t, err)
-		assert.Regexp(t, "unable to decode response body", err)
+		assert.Regexp(t, "unable to request subscription: most-likely-stacktrace", err)
 	})
 
 	t.Run("fail with problem", func(t *testing.T) {
@@ -98,11 +98,11 @@ func TestSubscriptionAPI_List(t *testing.T) {
 	})
 
 	t.Run("fail decode error", func(t *testing.T) {
-		httpmock.RegisterResponder("GET", url, httpmock.NewStringResponder(http.StatusInternalServerError, ""))
+		httpmock.RegisterResponder("GET", url, httpmock.NewStringResponder(http.StatusInternalServerError, "most-likely-stacktrace"))
 
 		_, err := api.List()
 		require.Error(t, err)
-		assert.Regexp(t, "unable to decode response body", err)
+		assert.Regexp(t, "unable to request subscriptions: most-likely-stacktrace", err)
 	})
 
 	t.Run("fail with problem", func(t *testing.T) {
@@ -163,11 +163,11 @@ func TestSubscriptionAPI_Create(t *testing.T) {
 	})
 
 	t.Run("fail decode body", func(t *testing.T) {
-		httpmock.RegisterResponder("POST", url, httpmock.NewStringResponder(http.StatusUnauthorized, ""))
+		httpmock.RegisterResponder("POST", url, httpmock.NewStringResponder(http.StatusUnauthorized, "most-likely-stacktrace"))
 
 		_, err := api.Create(subscription)
 		require.Error(t, err)
-		assert.Regexp(t, "unable to decode response body", err)
+		assert.Regexp(t, "unable to create subscription: most-likely-stacktrace", err)
 
 		httpmock.RegisterResponder("POST", url, httpmock.NewStringResponder(http.StatusOK, ""))
 
@@ -210,11 +210,11 @@ func TestSubscriptionAPI_Delete(t *testing.T) {
 	})
 
 	t.Run("fail decode body", func(t *testing.T) {
-		httpmock.RegisterResponder("DELETE", url, httpmock.NewStringResponder(http.StatusNotFound, ""))
+		httpmock.RegisterResponder("DELETE", url, httpmock.NewStringResponder(http.StatusNotFound, "most-likely-stacktrace"))
 
 		err := api.Delete(id)
 		require.Error(t, err)
-		assert.Regexp(t, "unable to decode response body", err)
+		assert.Regexp(t, "unable to delete subscription: most-likely-stacktrace", err)
 	})
 
 	t.Run("fail with problem", func(t *testing.T) {
@@ -254,12 +254,12 @@ func TestSubscriptionAPI_GetStats(t *testing.T) {
 
 	})
 	t.Run("fail decode error", func(t *testing.T) {
-		httpmock.RegisterResponder("GET", url, httpmock.NewStringResponder(http.StatusInternalServerError, ""))
+		httpmock.RegisterResponder("GET", url, httpmock.NewStringResponder(http.StatusInternalServerError, "most-likely-stacktrace"))
 
 		stats, err := api.GetStats(id)
 		require.Error(t, err)
 		require.Nil(t, stats)
-		assert.Regexp(t, "unable to decode response body", err)
+		assert.Regexp(t, "unable to get stats for subscription: most-likely-stacktrace", err)
 	})
 
 	t.Run("fail with problem", func(t *testing.T) {

@@ -42,11 +42,11 @@ func TestEventAPI_Get(t *testing.T) {
 	})
 
 	t.Run("fail decode error", func(t *testing.T) {
-		httpmock.RegisterResponder("GET", url, httpmock.NewStringResponder(http.StatusNotFound, ""))
+		httpmock.RegisterResponder("GET", url, httpmock.NewStringResponder(http.StatusNotFound, "most-likely-stacktrace"))
 
 		_, err := api.Get(expected.Name)
 		require.Error(t, err)
-		assert.Regexp(t, "unable to decode response body", err)
+		assert.Regexp(t, "unable to request event types: most-likely-stacktrace", err)
 	})
 
 	t.Run("fail with problem", func(t *testing.T) {
@@ -95,11 +95,11 @@ func TestEventAPI_List(t *testing.T) {
 	})
 
 	t.Run("fail decode error", func(t *testing.T) {
-		httpmock.RegisterResponder("GET", url, httpmock.NewStringResponder(http.StatusInternalServerError, ""))
+		httpmock.RegisterResponder("GET", url, httpmock.NewStringResponder(http.StatusInternalServerError, "most-likely-stacktrace"))
 
 		_, err := api.List()
 		require.Error(t, err)
-		assert.Regexp(t, "unable to decode response body", err)
+		assert.Regexp(t, "unable to request event types: most-likely-stacktrace", err)
 	})
 
 	t.Run("fail with problem", func(t *testing.T) {
@@ -237,11 +237,11 @@ func TestEventAPI_Delete(t *testing.T) {
 	})
 
 	t.Run("fail decode body", func(t *testing.T) {
-		httpmock.RegisterResponder("DELETE", url, httpmock.NewStringResponder(http.StatusNotFound, ""))
+		httpmock.RegisterResponder("DELETE", url, httpmock.NewStringResponder(http.StatusNotFound, "most-likely-stacktrace"))
 
 		err := api.Delete(name)
 		require.Error(t, err)
-		assert.Regexp(t, "unable to decode response body", err)
+		assert.Regexp(t, "unable to delete event type: most-likely-stacktrace", err)
 	})
 
 	t.Run("fail with problem", func(t *testing.T) {
