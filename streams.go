@@ -31,6 +31,10 @@ type StreamOptions struct {
 	// MaxElapsedTime is the maximum time spent on retries when committing a cursor. Once this value
 	// was reached the exponential backoff is halted and the cursor will not be committed.
 	CommitMaxElapsedTime time.Duration
+	// Whether or not CommitCursor will retry when a request fails. If
+	// set to true InitialRetryInterval, MaxRetryInterval, and CommitMaxElapsedTime have
+	// no effect for commit requests (default: false).
+	CommitRetry bool
 	// NotifyErr is called when an error occurs that leads to a retry. This notify function can be used to
 	// detect unhealthy streams.
 	NotifyErr func(error, time.Duration)
@@ -82,9 +86,15 @@ func NewStream(client *Client, subscriptionID string, options *StreamOptions) *S
 	streamBackOff.InitialInterval = options.InitialRetryInterval
 	streamBackOff.MaxInterval = options.MaxRetryInterval
 
-	commitBackOff := backoff.NewExponentialBackOff()
-	commitBackOff.InitialInterval = options.InitialRetryInterval
-	commitBackOff.MaxInterval = options.MaxRetryInterval
+	var commitBackOff backoff.BackOff
+	if options.CommitRetry {
+		back := backoff.NewExponentialBackOff()
+		back.InitialInterval = options.InitialRetryInterval
+		back.MaxInterval = options.MaxRetryInterval
+		commitBackOff = back
+	} else {
+		commitBackOff = &backoff.StopBackOff{}
+	}
 
 	streamAPI := &StreamAPI{
 		opener: &simpleStreamOpener{
