@@ -15,7 +15,7 @@ import (
 type simpleStreamOpener struct {
 	client         *Client
 	subscriptionID string
-	batchLimit     int
+	batchLimit     uint
 }
 
 func (so *simpleStreamOpener) openStream() (streamer, error) {

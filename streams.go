@@ -20,7 +20,7 @@ type Cursor struct {
 // StreamOptions contains optional parameters that are used to create a StreamAPI.
 type StreamOptions struct {
 	// The maximum number of Events in each chunk (and therefore per partition) of the stream (default: 1)
-	BatchLimit int
+	BatchLimit uint
 	// The initial (minimal) retry interval used for the exponential backoff. This value is applied for
 	// stream initialization as well as for cursor commits.
 	InitialRetryInterval time.Duration
@@ -65,13 +65,6 @@ func (o *StreamOptions) withDefaults() *StreamOptions {
 	}
 	return &copyOptions
 }
-
-// defaultStreamOptions provides some default values
-//var defaultStreamOptions = StreamOptions{
-//	InitialRetryInterval: time.Millisecond * 50,
-//	MaxRetryInterval:     time.Minute,
-//	CommitMaxElapsedTime: time.Minute * 2,
-//}
 
 // NewStream is used to instantiate a new steam processing sub API. As for all sub APIs of the `go-nakadi`
 // package NewStream receives a configured Nakadi client. Furthermore a valid subscription ID must be

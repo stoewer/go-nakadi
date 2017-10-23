@@ -93,7 +93,7 @@ func (c *Client) httpGET(backOff backoff.BackOff, url string, body interface{}, 
 	var response *http.Response
 	err = backoff.Retry(func() error {
 		response, err = c.httpClient.Do(request)
-		return err
+		return errors.WithStack(err)
 	}, backOff)
 
 	if err != nil {
@@ -142,7 +142,7 @@ func (c *Client) httpPUT(backOff backoff.BackOff, url string, body interface{}) 
 	var response *http.Response
 	err = backoff.Retry(func() error {
 		response, err = c.httpClient.Do(request)
-		return err
+		return errors.WithStack(err)
 	}, backOff)
 
 	return response, err
@@ -172,7 +172,7 @@ func (c *Client) httpPOST(backOff backoff.BackOff, url string, body interface{})
 	var response *http.Response
 	err = backoff.Retry(func() error {
 		response, err = c.httpClient.Do(request)
-		return err
+		return errors.WithStack(err)
 	}, backOff)
 
 	return response, err
@@ -197,7 +197,7 @@ func (c *Client) httpDELETE(backOff backoff.BackOff, url, msg string) error {
 	var response *http.Response
 	err = backoff.Retry(func() error {
 		response, err = c.httpClient.Do(request)
-		return err
+		return errors.WithStack(err)
 	}, backOff)
 
 	if err != nil {
