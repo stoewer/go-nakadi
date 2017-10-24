@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/cenkalti/backoff"
 	"github.com/pkg/errors"
 )
 
@@ -62,4 +63,31 @@ func decodeResponseToError(buffer []byte, msg string) error {
 		return errors.Errorf("%s: %s", msg, errJSON.ErrorDescription)
 	}
 	return errors.Errorf("%s: %s", msg, string(buffer))
+}
+
+// backOffConfiguration holds initial values for the initialization of a backoff that can
+// be used in retries.
+type backOffConfiguration struct {
+	// Whether to retry failed request or not.
+	Retry bool
+	// The initial (minimal) retry interval used for the exponential backoff.
+	InitialRetryInterval time.Duration
+	// MaxRetryInterval the maximum retry interval.
+	MaxRetryInterval time.Duration
+	// MaxElapsedTime is the maximum time spent on retries.
+	MaxElapsedTime time.Duration
+}
+
+// createBackOff initializes a new backoff from configured parameters.
+func (rc *backOffConfiguration) createBackOff() backoff.BackOff {
+	if !rc.Retry {
+		return &backoff.StopBackOff{}
+	}
+
+	back := backoff.NewExponentialBackOff()
+	back.InitialInterval = rc.InitialRetryInterval
+	back.MaxInterval = rc.MaxRetryInterval
+	back.MaxElapsedTime = rc.MaxElapsedTime
+
+	return back
 }
