@@ -17,6 +17,7 @@ package nakadi
 import (
 	"bytes"
 	"encoding/json"
+	"io/ioutil"
 	"net/http"
 	"time"
 
@@ -102,12 +103,11 @@ func (c *Client) httpGET(backOff backoff.BackOff, url string, body interface{}, 
 	defer response.Body.Close()
 
 	if response.StatusCode != http.StatusOK {
-		problem := problemJSON{}
-		err := json.NewDecoder(response.Body).Decode(&problem)
+		buffer, err := ioutil.ReadAll(response.Body)
 		if err != nil {
-			return errors.Wrap(err, "unable to decode response body")
+			return errors.Wrap(err, "unable to read response body")
 		}
-		return errors.Errorf("%s: %s", msg, problem.Detail)
+		return decodeResponseToError(buffer, msg)
 	}
 
 	err = json.NewDecoder(response.Body).Decode(body)
@@ -206,12 +206,11 @@ func (c *Client) httpDELETE(backOff backoff.BackOff, url, msg string) error {
 	defer response.Body.Close()
 
 	if response.StatusCode != http.StatusOK && response.StatusCode != http.StatusNoContent {
-		problem := problemJSON{}
-		err := json.NewDecoder(response.Body).Decode(&problem)
+		buffer, err := ioutil.ReadAll(response.Body)
 		if err != nil {
-			return errors.Wrap(err, "unable to decode response body")
+			return errors.Wrap(err, "unable to read response body")
 		}
-		return errors.Errorf("%s: %s", msg, problem.Detail)
+		return decodeResponseToError(buffer, msg)
 	}
 
 	return nil

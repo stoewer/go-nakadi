@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"net/http"
 
 	"github.com/pkg/errors"
@@ -37,13 +38,11 @@ func (so *simpleStreamOpener) openStream() (streamer, error) {
 	}
 
 	if response.StatusCode >= 400 {
-		decoder := json.NewDecoder(response.Body)
-		problem := &problemJSON{}
-		err = decoder.Decode(problem)
+		buffer, err := ioutil.ReadAll(response.Body)
 		if err != nil {
-			return nil, errors.Wrap(err, "unable to decode subscription error")
+			return nil, errors.Wrap(err, "unable to read response body")
 		}
-		return nil, errors.Errorf("unable to open stream: %s", problem.Detail)
+		return nil, decodeResponseToError(buffer, "unable to open stream")
 	}
 
 	s := &simpleStream{
@@ -145,13 +144,11 @@ func (s *simpleCommitter) commitCursor(cursor Cursor) error {
 	defer response.Body.Close()
 
 	if response.StatusCode >= 400 {
-		decoder := json.NewDecoder(response.Body)
-		problem := &problemJSON{}
-		err = decoder.Decode(problem)
+		buffer, err := ioutil.ReadAll(response.Body)
 		if err != nil {
-			return errors.Wrap(err, "unable to decode commit error")
+			return errors.Wrap(err, "unable to read response body")
 		}
-		return errors.Errorf("unable to commit cursor: %s", problem.Detail)
+		return decodeResponseToError(buffer, "unable to commit cursor")
 	}
 
 	return nil

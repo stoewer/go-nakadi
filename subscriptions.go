@@ -3,6 +3,7 @@ package nakadi
 import (
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"time"
 
@@ -114,12 +115,11 @@ func (s *SubscriptionAPI) Create(subscription *Subscription) (*Subscription, err
 	defer response.Body.Close()
 
 	if response.StatusCode != http.StatusOK && response.StatusCode != http.StatusCreated {
-		problem := problemJSON{}
-		err := json.NewDecoder(response.Body).Decode(&problem)
+		buffer, err := ioutil.ReadAll(response.Body)
 		if err != nil {
-			return nil, errors.Wrap(err, "unable to decode response body")
+			return nil, errors.Wrap(err, "unable to read response body")
 		}
-		return nil, errors.Errorf("unable to create subscription: %s", problem.Detail)
+		return nil, decodeResponseToError(buffer, "unable to create subscription")
 	}
 
 	subscription = &Subscription{}

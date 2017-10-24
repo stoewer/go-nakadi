@@ -1,9 +1,12 @@
 package nakadi
 
 import (
+	"encoding/json"
 	"net"
 	"net/http"
 	"time"
+
+	"github.com/pkg/errors"
 )
 
 // newHTTPClient crates an http client which is used for non streaming requests.
@@ -35,4 +38,28 @@ type problemJSON struct {
 	Detail string `json:"detail"`
 	Status int    `json:"status"`
 	Type   string `json:"type"`
+}
+
+type errorJSON struct {
+	Error            string `json:"error"`
+	ErrorDescription string `json:"error_description"`
+}
+
+// decodeResponseToError will try do decode into problemJSON then errorJSON
+// and extract details from this defined formats.
+// It will fallback to creating and error with message body
+// Second parameter is an error message
+func decodeResponseToError(buffer []byte, msg string) error {
+	problem := problemJSON{}
+	err := json.Unmarshal(buffer, &problem)
+	if err == nil {
+		return errors.Errorf("%s: %s", msg, problem.Detail)
+	}
+	errJSON := &errorJSON{}
+
+	err = json.Unmarshal(buffer, &errJSON)
+	if err == nil {
+		return errors.Errorf("%s: %s", msg, errJSON.ErrorDescription)
+	}
+	return errors.Errorf("%s: %s", msg, string(buffer))
 }

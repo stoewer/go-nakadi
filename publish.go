@@ -3,6 +3,7 @@ package nakadi
 import (
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"time"
 
@@ -151,12 +152,11 @@ func (p *PublishAPI) simplePublish(events interface{}) error {
 	}
 
 	if response.StatusCode != http.StatusOK {
-		problem := problemJSON{}
-		err := json.NewDecoder(response.Body).Decode(&problem)
+		buffer, err := ioutil.ReadAll(response.Body)
 		if err != nil {
-			return errors.Wrap(err, "unable to decode response body")
+			return errors.Wrap(err, "unable to read response body")
 		}
-		return errors.Errorf("unable to request event types: %s", problem.Detail)
+		return decodeResponseToError(buffer, "unable to request event types")
 	}
 
 	return nil

@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"net/http"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -68,6 +69,19 @@ func TestSimpleStreamOpener_openStream(t *testing.T) {
 		_, err := opener.openStream()
 		require.Error(t, err)
 		assert.Regexp(t, problem.Detail, err.Error())
+	})
+	t.Run("fail to read body", func(t *testing.T) {
+		opener := setupOpener()
+		responder := httpmock.ResponderFromResponse(&http.Response{
+			Status:     strconv.Itoa(http.StatusBadRequest),
+			StatusCode: http.StatusBadRequest,
+			Body:       brokenBodyReader{},
+		})
+		httpmock.RegisterResponder("GET", url, responder)
+
+		_, err := opener.openStream()
+		require.Error(t, err)
+		assert.Regexp(t, "unable to read response body", err.Error())
 	})
 
 	t.Run("success without token", func(t *testing.T) {
@@ -210,6 +224,18 @@ func TestSimpleCommitter_commitEvents(t *testing.T) {
 		err := stream.commitCursor(Cursor{})
 		require.Error(t, err)
 		assert.Regexp(t, problem.Detail, err)
+	})
+	t.Run("fail to read body", func(t *testing.T) {
+		responder := httpmock.ResponderFromResponse(&http.Response{
+			Status:     strconv.Itoa(http.StatusBadRequest),
+			StatusCode: http.StatusBadRequest,
+			Body:       brokenBodyReader{},
+		})
+		stream := setupCommitter(responder)
+
+		err := stream.commitCursor(Cursor{})
+		require.Error(t, err)
+		assert.Regexp(t, "unable to read response body", err)
 	})
 
 	t.Run("successful commit", func(t *testing.T) {

@@ -3,6 +3,7 @@ package nakadi
 import (
 	"encoding/json"
 	"net/http"
+	"strconv"
 	"testing"
 	"time"
 
@@ -84,6 +85,22 @@ func TestClient_httpGET(t *testing.T) {
 
 		require.Error(t, err)
 		assert.Regexp(t, assert.AnError, err)
+	})
+
+	t.Run("fail to read body", func(t *testing.T) {
+		client := setupClient(nil)
+		client.tokenProvider = func() (string, error) { return "token", nil }
+		responder := httpmock.ResponderFromResponse(&http.Response{
+			Status:     strconv.Itoa(http.StatusBadRequest),
+			StatusCode: http.StatusBadRequest,
+			Body:       brokenBodyReader{},
+		})
+		httpmock.RegisterResponder("GET", url, responder)
+
+		err := client.httpGET(&backoff.StopBackOff{}, url, &body, msg)
+
+		require.Error(t, err)
+		assert.Regexp(t, "unable to read response body", err)
 	})
 
 	t.Run("success oauth token", func(t *testing.T) {
@@ -344,6 +361,22 @@ func TestClient_httpDELETE(t *testing.T) {
 		err := client.httpDELETE(&backoff.StopBackOff{}, url, msg)
 
 		assert.NoError(t, err)
+	})
+
+	t.Run("fail to read body", func(t *testing.T) {
+		client := setupClient(nil)
+		client.tokenProvider = func() (string, error) { return "token", nil }
+		responder := httpmock.ResponderFromResponse(&http.Response{
+			Status:     strconv.Itoa(http.StatusBadRequest),
+			StatusCode: http.StatusBadRequest,
+			Body:       brokenBodyReader{},
+		})
+		httpmock.RegisterResponder("DELETE", url, responder)
+
+		err := client.httpDELETE(&backoff.StopBackOff{}, url, msg)
+
+		require.Error(t, err)
+		assert.Regexp(t, "unable to read response body", err)
 	})
 
 	t.Run("success after retry", func(t *testing.T) {

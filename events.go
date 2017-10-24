@@ -1,8 +1,8 @@
 package nakadi
 
 import (
-	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"time"
 
@@ -140,12 +140,11 @@ func (e *EventAPI) Create(eventType *EventType) error {
 	defer response.Body.Close()
 
 	if response.StatusCode != http.StatusCreated {
-		problem := problemJSON{}
-		err := json.NewDecoder(response.Body).Decode(&problem)
+		buffer, err := ioutil.ReadAll(response.Body)
 		if err != nil {
-			return errors.Wrap(err, "unable to decode response body")
+			return errors.Wrap(err, "unable to read response body")
 		}
-		return errors.Errorf("unable to create event type: %s", problem.Detail)
+		return decodeResponseToError(buffer, "unable to create event type")
 	}
 
 	return nil
@@ -160,12 +159,11 @@ func (e *EventAPI) Update(eventType *EventType) error {
 	defer response.Body.Close()
 
 	if response.StatusCode != http.StatusOK {
-		problem := problemJSON{}
-		err := json.NewDecoder(response.Body).Decode(&problem)
+		buffer, err := ioutil.ReadAll(response.Body)
 		if err != nil {
-			return errors.Wrap(err, "unable to decode response body")
+			return errors.Wrap(err, "unable to read response body")
 		}
-		return errors.Errorf("unable to update event type: %s", problem.Detail)
+		return decodeResponseToError(buffer, "unable to update event type")
 	}
 
 	return nil
