@@ -52,8 +52,8 @@ func TestStreamAPI_NextEvents(t *testing.T) {
 		blockCh <- time.Now()
 
 		stream.On("nextEvents").Return(Cursor{}, nil, assert.AnError).WaitUntil(blockCh)
-		blockCh <- time.Now()
 		stream.On("closeStream").Return(nil)
+		blockCh <- time.Now()
 
 		_, _, err := streamAPI.NextEvents()
 
@@ -67,9 +67,11 @@ func TestStreamAPI_NextEvents(t *testing.T) {
 
 		opener.On("openStream").Return(stream, nil).WaitUntil(blockCh)
 		blockCh <- time.Now()
-		stream.On("nextEvents").Return(expectedCursor, expectedEvents, nil).WaitUntil(blockCh)
 
+		stream.On("nextEvents").Return(expectedCursor, expectedEvents, nil).WaitUntil(blockCh)
+		stream.On("closeStream").Return(nil)
 		blockCh <- time.Now()
+
 		cursor, events, err := streamAPI.NextEvents()
 
 		require.NoError(t, err)
@@ -94,8 +96,8 @@ func TestStreamAPI_NextEvents(t *testing.T) {
 
 		stream.On("nextEvents").Return(Cursor{}, nil, context.Canceled).WaitUntil(blockCh)
 		stream.On("closeStream").Return(nil)
-
 		blockCh <- time.Now()
+
 		_, _, err := streamAPI.NextEvents()
 
 		assert.EqualError(t, context.Canceled, err.Error())
