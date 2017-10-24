@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/cenkalti/backoff"
 	"github.com/pkg/errors"
 )
 
@@ -85,30 +84,23 @@ func (o *PublishOptions) withDefaults() *PublishOptions {
 func NewPublishAPI(client *Client, eventType string, options *PublishOptions) *PublishAPI {
 	options = options.withDefaults()
 
-	var backOff backoff.BackOff
-	if options.Retry {
-		back := backoff.NewExponentialBackOff()
-		back.InitialInterval = options.InitialRetryInterval
-		back.MaxInterval = options.MaxRetryInterval
-		back.MaxElapsedTime = options.MaxElapsedTime
-		backOff = back
-	} else {
-		backOff = &backoff.StopBackOff{}
-	}
-
 	return &PublishAPI{
 		client:     client,
 		publishURL: fmt.Sprintf("%s/event-types/%s/events", client.nakadiURL, eventType),
-		backOff:    backOff}
+		backOffConf: backOffConfiguration{
+			Retry:                options.Retry,
+			InitialRetryInterval: options.InitialRetryInterval,
+			MaxRetryInterval:     options.MaxRetryInterval,
+			MaxElapsedTime:       options.MaxElapsedTime}}
 }
 
 // PublishAPI is a sub API for publishing Nakadi events. All publish methods emit events as a single batch. If
 // a publish method returns an error, the caller should check whether the error is a BatchItemsError in order to
 // verify which events of a batch have been published.
 type PublishAPI struct {
-	client     *Client
-	publishURL string
-	backOff    backoff.BackOff
+	client      *Client
+	publishURL  string
+	backOffConf backOffConfiguration
 }
 
 // PublishDataChangeEvent emits a batch of data change events. Depending on the options used when creating
@@ -127,16 +119,7 @@ func (p *PublishAPI) PublishBusinessEvent(events []BusinessEvent) error {
 // business events. Depending on the options used when creating the PublishAPI this method will retry
 // to publish the events if the were not successfully published.
 func (p *PublishAPI) Publish(events interface{}) error {
-	err := backoff.Retry(func() error {
-		return p.simplePublish(events)
-	}, p.backOff)
-
-	return err
-}
-
-// simplePublish makes a single call to the publish endpoint without retrying.
-func (p *PublishAPI) simplePublish(events interface{}) error {
-	response, err := p.client.httpPOST(p.backOff, p.publishURL, events)
+	response, err := p.client.httpPOST(p.backOffConf.createBackOff(), p.publishURL, events)
 	if err != nil {
 		return errors.Wrap(err, "unable to publish event")
 	}
