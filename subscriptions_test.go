@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strconv"
 	"testing"
 
 	"time"
@@ -162,18 +163,32 @@ func TestSubscriptionAPI_Create(t *testing.T) {
 		assert.Regexp(t, "not authorized", err)
 	})
 
-	t.Run("fail decode body", func(t *testing.T) {
+	t.Run("fail decode body with error", func(t *testing.T) {
 		httpmock.RegisterResponder("POST", url, httpmock.NewStringResponder(http.StatusUnauthorized, "most-likely-stacktrace"))
 
 		_, err := api.Create(subscription)
 		require.Error(t, err)
 		assert.Regexp(t, "unable to create subscription: most-likely-stacktrace", err)
+	})
 
+	t.Run("fail decode body", func(t *testing.T) {
 		httpmock.RegisterResponder("POST", url, httpmock.NewStringResponder(http.StatusOK, ""))
 
-		_, err = api.Create(subscription)
+		_, err := api.Create(subscription)
 		require.Error(t, err)
 		assert.Regexp(t, "unable to decode response body", err)
+	})
+	t.Run("fail to read body", func(t *testing.T) {
+		responder := httpmock.ResponderFromResponse(&http.Response{
+			Status:     strconv.Itoa(http.StatusBadRequest),
+			StatusCode: http.StatusBadRequest,
+			Body:       brokenBodyReader{},
+		})
+		httpmock.RegisterResponder("POST", url, responder)
+
+		_, err := api.Create(subscription)
+		require.Error(t, err)
+		assert.Regexp(t, "unable to read response body", err)
 	})
 
 	t.Run("success", func(t *testing.T) {

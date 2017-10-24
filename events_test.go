@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strconv"
 	"testing"
 
 	"time"
@@ -159,6 +160,19 @@ func TestEventAPI_Create(t *testing.T) {
 		assert.Regexp(t, "not valid", err)
 	})
 
+	t.Run("fail to read body", func(t *testing.T) {
+		responder := httpmock.ResponderFromResponse(&http.Response{
+			Status:     strconv.Itoa(http.StatusBadRequest),
+			StatusCode: http.StatusBadRequest,
+			Body:       brokenBodyReader{},
+		})
+		httpmock.RegisterResponder("POST", url, responder)
+
+		err := api.Create(eventType)
+		require.Error(t, err)
+		assert.Regexp(t, "unable to read response body", err)
+	})
+
 	t.Run("success", func(t *testing.T) {
 		httpmock.RegisterResponder("POST", url, httpmock.Responder(func(r *http.Request) (*http.Response, error) {
 			uploaded := &EventType{}
@@ -173,7 +187,7 @@ func TestEventAPI_Create(t *testing.T) {
 	})
 }
 
-func TestEventAPI_Save(t *testing.T) {
+func TestEventAPI_Update(t *testing.T) {
 	httpmock.Activate()
 	defer httpmock.DeactivateAndReset()
 
@@ -202,6 +216,19 @@ func TestEventAPI_Save(t *testing.T) {
 		err := api.Update(eventType)
 		require.Error(t, err)
 		assert.Regexp(t, "not found", err)
+	})
+
+	t.Run("fail to read body", func(t *testing.T) {
+		responder := httpmock.ResponderFromResponse(&http.Response{
+			Status:     strconv.Itoa(http.StatusBadRequest),
+			StatusCode: http.StatusBadRequest,
+			Body:       brokenBodyReader{},
+		})
+		httpmock.RegisterResponder("PUT", url, responder)
+
+		err := api.Update(eventType)
+		require.Error(t, err)
+		assert.Regexp(t, "unable to read response body", err)
 	})
 
 	t.Run("success", func(t *testing.T) {
