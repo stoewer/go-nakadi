@@ -99,7 +99,7 @@ func helperMakeCounter(n int) chan int {
 }
 
 // brokenBodyReader is an implementation of ReadCloser interface to be used for
-// mocking errors while reaing from body
+// mocking errors while reading from body
 type brokenBodyReader struct{}
 
 func (brokenBodyReader) Read(p []byte) (n int, err error) { return 0, assert.AnError }

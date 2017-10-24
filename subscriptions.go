@@ -135,7 +135,7 @@ type SubscriptionStats struct {
 	Partitions []*PartitionStats `json:"partitions"`
 }
 
-// PartitionStats represents statistic information for the particular partiion
+// PartitionStats represents statistic information for the particular partition
 type PartitionStats struct {
 	Partition        string `json:"partition"`
 	State            string `json:"state"`
