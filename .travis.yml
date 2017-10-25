@@ -50,7 +50,7 @@ before_script:
 script:
 - go vet -v
 - golint -set_exit_status .
-- go test -v -tags=integration -covermode=count -coverprofile=profile.cov .
+- go test -v -tags=integration -race -covermode=count -coverprofile=profile.cov .
 
 after_script:
 - (cd nakadi && ./gradlew stopNakadi)
