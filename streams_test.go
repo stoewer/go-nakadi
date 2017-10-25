@@ -189,7 +189,7 @@ func TestStreamAPI_Close(t *testing.T) {
 	}()
 
 	blockCh <- time.Now()
-	time.Sleep(50 * time.Millisecond)
+	time.Sleep(100 * time.Millisecond)
 	blockCh <- time.Now()
 
 	err := <-errorCh
