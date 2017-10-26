@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/cenkalti/backoff"
 	"github.com/pkg/errors"
 )
 
@@ -90,31 +89,25 @@ func (o *EventOptions) withDefaults() *EventOptions {
 func NewEventAPI(client *Client, options *EventOptions) *EventAPI {
 	options = options.withDefaults()
 
-	var backOff backoff.BackOff
-	if options.Retry {
-		back := backoff.NewExponentialBackOff()
-		back.InitialInterval = options.InitialRetryInterval
-		back.MaxInterval = options.MaxRetryInterval
-		back.MaxElapsedTime = options.MaxElapsedTime
-		backOff = back
-	} else {
-		backOff = &backoff.StopBackOff{}
-	}
 	return &EventAPI{
-		client:  client,
-		backOff: backOff}
+		client: client,
+		backOffConf: backOffConfiguration{
+			Retry:                options.Retry,
+			InitialRetryInterval: options.InitialRetryInterval,
+			MaxRetryInterval:     options.MaxRetryInterval,
+			MaxElapsedTime:       options.MaxElapsedTime}}
 }
 
 // EventAPI is a sub API that allows to inspect and manage event types on a Nakadi instance.
 type EventAPI struct {
-	client  *Client
-	backOff backoff.BackOff
+	client      *Client
+	backOffConf backOffConfiguration
 }
 
 // List returns all registered event types.
 func (e *EventAPI) List() ([]*EventType, error) {
 	eventTypes := []*EventType{}
-	err := e.client.httpGET(e.backOff, e.eventBaseURL(), &eventTypes, "unable to request event types")
+	err := e.client.httpGET(e.backOffConf.create(), e.eventBaseURL(), &eventTypes, "unable to request event types")
 	if err != nil {
 		return nil, err
 	}
@@ -124,7 +117,7 @@ func (e *EventAPI) List() ([]*EventType, error) {
 // Get returns an event type based on its name.
 func (e *EventAPI) Get(name string) (*EventType, error) {
 	eventType := &EventType{}
-	err := e.client.httpGET(e.backOff, e.eventURL(name), eventType, "unable to request event types")
+	err := e.client.httpGET(e.backOffConf.create(), e.eventURL(name), eventType, "unable to request event types")
 	if err != nil {
 		return nil, err
 	}
@@ -133,7 +126,7 @@ func (e *EventAPI) Get(name string) (*EventType, error) {
 
 // Create saves a new event type.
 func (e *EventAPI) Create(eventType *EventType) error {
-	response, err := e.client.httpPOST(e.backOff, e.eventBaseURL(), eventType)
+	response, err := e.client.httpPOST(e.backOffConf.create(), e.eventBaseURL(), eventType)
 	if err != nil {
 		return errors.Wrap(err, "unable to create event type")
 	}
@@ -152,7 +145,7 @@ func (e *EventAPI) Create(eventType *EventType) error {
 
 // Update updates an existing event type.
 func (e *EventAPI) Update(eventType *EventType) error {
-	response, err := e.client.httpPUT(e.backOff, e.eventURL(eventType.Name), eventType)
+	response, err := e.client.httpPUT(e.backOffConf.create(), e.eventURL(eventType.Name), eventType)
 	if err != nil {
 		return errors.Wrap(err, "unable to update event type")
 	}
@@ -171,7 +164,7 @@ func (e *EventAPI) Update(eventType *EventType) error {
 
 // Delete removes an event type.
 func (e *EventAPI) Delete(name string) error {
-	return e.client.httpDELETE(e.backOff, e.eventURL(name), "unable to delete event type")
+	return e.client.httpDELETE(e.backOffConf.create(), e.eventURL(name), "unable to delete event type")
 }
 
 func (e *EventAPI) eventURL(name string) string {

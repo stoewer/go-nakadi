@@ -75,20 +75,6 @@ func NewStream(client *Client, subscriptionID string, options *StreamOptions) *S
 
 	ctx, cancel := context.WithCancel(context.Background())
 
-	streamBackOff := backoff.NewExponentialBackOff()
-	streamBackOff.InitialInterval = options.InitialRetryInterval
-	streamBackOff.MaxInterval = options.MaxRetryInterval
-
-	var commitBackOff backoff.BackOff
-	if options.CommitRetry {
-		back := backoff.NewExponentialBackOff()
-		back.InitialInterval = options.InitialRetryInterval
-		back.MaxInterval = options.MaxRetryInterval
-		commitBackOff = back
-	} else {
-		commitBackOff = &backoff.StopBackOff{}
-	}
-
 	streamAPI := &StreamAPI{
 		opener: &simpleStreamOpener{
 			client:         client,
@@ -97,13 +83,22 @@ func NewStream(client *Client, subscriptionID string, options *StreamOptions) *S
 		committer: &simpleCommitter{
 			client:         client,
 			subscriptionID: subscriptionID},
-		eventCh:       make(chan eventsOrError, 10),
-		ctx:           ctx,
-		cancel:        cancel,
-		streamBackOff: backoff.WithContext(streamBackOff, ctx),
-		commitBackOff: backoff.WithContext(commitBackOff, ctx),
-		notifyErr:     options.NotifyErr,
-		notifyOK:      options.NotifyOK}
+		eventCh: make(chan eventsOrError, 10),
+		ctx:     ctx,
+		cancel:  cancel,
+		streamBackOffConf: backOffConfiguration{
+			Retry:                true,
+			InitialRetryInterval: options.InitialRetryInterval,
+			MaxRetryInterval:     options.MaxRetryInterval,
+		},
+		commitBackOffConf: backOffConfiguration{
+			Retry:                options.CommitRetry,
+			InitialRetryInterval: options.InitialRetryInterval,
+			MaxRetryInterval:     options.MaxRetryInterval,
+			MaxElapsedTime:       options.CommitMaxElapsedTime,
+		},
+		notifyErr: options.NotifyErr,
+		notifyOK:  options.NotifyOK}
 
 	go streamAPI.startStream()
 
@@ -114,15 +109,15 @@ func NewStream(client *Client, subscriptionID string, options *StreamOptions) *S
 // high level stream API. In order to ensure that only successfully processed events are committed, it is
 // crucial to commit cursors of respective event batches in the same order they were received.
 type StreamAPI struct {
-	opener        streamOpener
-	committer     committer
-	eventCh       chan eventsOrError
-	ctx           context.Context
-	cancel        context.CancelFunc
-	commitBackOff backoff.BackOff
-	streamBackOff backoff.BackOff
-	notifyErr     func(error, time.Duration)
-	notifyOK      func()
+	opener            streamOpener
+	committer         committer
+	eventCh           chan eventsOrError
+	ctx               context.Context
+	cancel            context.CancelFunc
+	commitBackOffConf backOffConfiguration
+	streamBackOffConf backOffConfiguration
+	notifyErr         func(error, time.Duration)
+	notifyOK          func()
 }
 
 // NextEvents reads the next batch of events from the stream and returns the encoded events along with the
@@ -140,10 +135,11 @@ func (s *StreamAPI) NextEvents() (Cursor, []byte, error) {
 func (s *StreamAPI) CommitCursor(cursor Cursor) error {
 	var err error
 
+	commitBackOff := backoff.WithContext(s.commitBackOffConf.create(), s.ctx)
 	backoff.RetryNotify(func() error {
 		err = s.committer.commitCursor(cursor)
 		return err
-	}, s.commitBackOff, s.notifyErr)
+	}, commitBackOff, s.notifyErr)
 
 	if err == nil {
 		s.notifyOK()
@@ -165,10 +161,11 @@ func (s *StreamAPI) startStream() {
 		var err error
 		var stream streamer
 
+		streamBackOff := backoff.WithContext(s.streamBackOffConf.create(), s.ctx)
 		backoff.RetryNotify(func() error {
 			stream, err = s.opener.openStream()
 			return err
-		}, s.streamBackOff, s.notifyErr)
+		}, streamBackOff, s.notifyErr)
 
 		if err != nil {
 			continue

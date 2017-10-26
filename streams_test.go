@@ -5,7 +5,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/cenkalti/backoff"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
@@ -203,27 +202,26 @@ func TestStreamAPI_Close(t *testing.T) {
 func setupMockStream(errCh chan error, okCh chan struct{}) (*StreamAPI, *mockStreamOpener, *mockCommitter) {
 	ctx, cancel := context.WithCancel(context.Background())
 
-	streamBackOff := backoff.NewExponentialBackOff()
-	streamBackOff.InitialInterval = 1 * time.Millisecond
-	streamBackOff.MaxInterval = 100 * time.Millisecond
-	streamBackOff.MaxElapsedTime = 500 * time.Millisecond
-
-	commitBackOff := backoff.NewExponentialBackOff()
-	commitBackOff.InitialInterval = 1 * time.Millisecond
-	commitBackOff.MaxInterval = 100 * time.Millisecond
-	commitBackOff.MaxElapsedTime = 500 * time.Millisecond
-
 	opener := &mockStreamOpener{}
 	committer := &mockCommitter{}
 
 	stream := &StreamAPI{
-		opener:        opener,
-		committer:     committer,
-		eventCh:       make(chan eventsOrError, 10),
-		ctx:           ctx,
-		cancel:        cancel,
-		streamBackOff: backoff.WithContext(streamBackOff, ctx),
-		commitBackOff: backoff.WithContext(commitBackOff, ctx),
+		opener:    opener,
+		committer: committer,
+		eventCh:   make(chan eventsOrError, 10),
+		ctx:       ctx,
+		cancel:    cancel,
+		streamBackOffConf: backOffConfiguration{
+			Retry:                true,
+			InitialRetryInterval: 1 * time.Millisecond,
+			MaxRetryInterval:     100 * time.Millisecond,
+		},
+		commitBackOffConf: backOffConfiguration{
+			Retry:                true,
+			InitialRetryInterval: 1 * time.Millisecond,
+			MaxRetryInterval:     100 * time.Millisecond,
+			MaxElapsedTime:       500 * time.Millisecond,
+		},
 		notifyErr: func(err error, _ time.Duration) {
 			if errCh != nil {
 				errCh <- err
