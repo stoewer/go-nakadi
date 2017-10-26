@@ -135,7 +135,7 @@ func (s *StreamAPI) NextEvents() (Cursor, []byte, error) {
 func (s *StreamAPI) CommitCursor(cursor Cursor) error {
 	var err error
 
-	commitBackOff := backoff.WithContext(s.commitBackOffConf.createBackOff(), s.ctx)
+	commitBackOff := backoff.WithContext(s.commitBackOffConf.create(), s.ctx)
 	backoff.RetryNotify(func() error {
 		err = s.committer.commitCursor(cursor)
 		return err
@@ -161,7 +161,7 @@ func (s *StreamAPI) startStream() {
 		var err error
 		var stream streamer
 
-		streamBackOff := backoff.WithContext(s.streamBackOffConf.createBackOff(), s.ctx)
+		streamBackOff := backoff.WithContext(s.streamBackOffConf.create(), s.ctx)
 		backoff.RetryNotify(func() error {
 			stream, err = s.opener.openStream()
 			return err

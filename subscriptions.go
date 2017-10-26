@@ -81,7 +81,7 @@ func (s *SubscriptionAPI) List() ([]*Subscription, error) {
 	subscriptions := struct {
 		Items []*Subscription `json:"items"`
 	}{}
-	err := s.client.httpGET(s.backOffConf.createBackOff(), s.subBaseURL(), &subscriptions, "unable to request subscriptions")
+	err := s.client.httpGET(s.backOffConf.create(), s.subBaseURL(), &subscriptions, "unable to request subscriptions")
 	if err != nil {
 		return nil, err
 	}
@@ -91,7 +91,7 @@ func (s *SubscriptionAPI) List() ([]*Subscription, error) {
 // Get obtains a single subscription identified by its ID.
 func (s *SubscriptionAPI) Get(id string) (*Subscription, error) {
 	subscription := &Subscription{}
-	err := s.client.httpGET(s.backOffConf.createBackOff(), s.subURL(id), subscription, "unable to request subscription")
+	err := s.client.httpGET(s.backOffConf.create(), s.subURL(id), subscription, "unable to request subscription")
 	if err != nil {
 		return nil, err
 	}
@@ -101,7 +101,7 @@ func (s *SubscriptionAPI) Get(id string) (*Subscription, error) {
 // Create initializes a new subscription. If the subscription already exists the pre existing subscription
 // is returned.
 func (s *SubscriptionAPI) Create(subscription *Subscription) (*Subscription, error) {
-	response, err := s.client.httpPOST(s.backOffConf.createBackOff(), s.subBaseURL(), subscription)
+	response, err := s.client.httpPOST(s.backOffConf.create(), s.subBaseURL(), subscription)
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to create subscription")
 	}
@@ -126,7 +126,7 @@ func (s *SubscriptionAPI) Create(subscription *Subscription) (*Subscription, err
 
 // Delete removes an existing subscription.
 func (s *SubscriptionAPI) Delete(id string) error {
-	return s.client.httpDELETE(s.backOffConf.createBackOff(), s.subURL(id), "unable to delete subscription")
+	return s.client.httpDELETE(s.backOffConf.create(), s.subURL(id), "unable to delete subscription")
 }
 
 // SubscriptionStats represents detailed statistics for the subscription
@@ -150,7 +150,7 @@ type statsResponse struct {
 // GetStats returns statistic information for subscription
 func (s *SubscriptionAPI) GetStats(id string) ([]*SubscriptionStats, error) {
 	stats := &statsResponse{}
-	if err := s.client.httpGET(s.backOffConf.createBackOff(), s.subURL(id)+"/stats", stats, "unable to get stats for subscription"); err != nil {
+	if err := s.client.httpGET(s.backOffConf.create(), s.subURL(id)+"/stats", stats, "unable to get stats for subscription"); err != nil {
 		return nil, err
 	}
 	return stats.Items, nil

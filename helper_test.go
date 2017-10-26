@@ -55,7 +55,7 @@ func TestBackOffConfiguration_createBackOff(t *testing.T) {
 			MaxRetryInterval:     1 * time.Second,
 			MaxElapsedTime:       1 * time.Minute}
 
-		backOff := backOffConf.createBackOff()
+		backOff := backOffConf.create()
 		assert.IsType(t, &backoff.StopBackOff{}, backOff)
 	})
 
@@ -66,7 +66,7 @@ func TestBackOffConfiguration_createBackOff(t *testing.T) {
 			MaxRetryInterval:     1 * time.Second,
 			MaxElapsedTime:       1 * time.Minute}
 
-		backOff := backOffConf.createBackOff()
+		backOff := backOffConf.create()
 		require.IsType(t, &backoff.ExponentialBackOff{}, backOff)
 
 		expBackOff := backOff.(*backoff.ExponentialBackOff)

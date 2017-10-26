@@ -107,7 +107,7 @@ type EventAPI struct {
 // List returns all registered event types.
 func (e *EventAPI) List() ([]*EventType, error) {
 	eventTypes := []*EventType{}
-	err := e.client.httpGET(e.backOffConf.createBackOff(), e.eventBaseURL(), &eventTypes, "unable to request event types")
+	err := e.client.httpGET(e.backOffConf.create(), e.eventBaseURL(), &eventTypes, "unable to request event types")
 	if err != nil {
 		return nil, err
 	}
@@ -117,7 +117,7 @@ func (e *EventAPI) List() ([]*EventType, error) {
 // Get returns an event type based on its name.
 func (e *EventAPI) Get(name string) (*EventType, error) {
 	eventType := &EventType{}
-	err := e.client.httpGET(e.backOffConf.createBackOff(), e.eventURL(name), eventType, "unable to request event types")
+	err := e.client.httpGET(e.backOffConf.create(), e.eventURL(name), eventType, "unable to request event types")
 	if err != nil {
 		return nil, err
 	}
@@ -126,7 +126,7 @@ func (e *EventAPI) Get(name string) (*EventType, error) {
 
 // Create saves a new event type.
 func (e *EventAPI) Create(eventType *EventType) error {
-	response, err := e.client.httpPOST(e.backOffConf.createBackOff(), e.eventBaseURL(), eventType)
+	response, err := e.client.httpPOST(e.backOffConf.create(), e.eventBaseURL(), eventType)
 	if err != nil {
 		return errors.Wrap(err, "unable to create event type")
 	}
@@ -145,7 +145,7 @@ func (e *EventAPI) Create(eventType *EventType) error {
 
 // Update updates an existing event type.
 func (e *EventAPI) Update(eventType *EventType) error {
-	response, err := e.client.httpPUT(e.backOffConf.createBackOff(), e.eventURL(eventType.Name), eventType)
+	response, err := e.client.httpPUT(e.backOffConf.create(), e.eventURL(eventType.Name), eventType)
 	if err != nil {
 		return errors.Wrap(err, "unable to update event type")
 	}
@@ -164,7 +164,7 @@ func (e *EventAPI) Update(eventType *EventType) error {
 
 // Delete removes an event type.
 func (e *EventAPI) Delete(name string) error {
-	return e.client.httpDELETE(e.backOffConf.createBackOff(), e.eventURL(name), "unable to delete event type")
+	return e.client.httpDELETE(e.backOffConf.create(), e.eventURL(name), "unable to delete event type")
 }
 
 func (e *EventAPI) eventURL(name string) string {

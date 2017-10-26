@@ -78,8 +78,8 @@ type backOffConfiguration struct {
 	MaxElapsedTime time.Duration
 }
 
-// createBackOff initializes a new backoff from configured parameters.
-func (rc *backOffConfiguration) createBackOff() backoff.BackOff {
+// create initializes a new backoff from configured parameters.
+func (rc *backOffConfiguration) create() backoff.BackOff {
 	if !rc.Retry {
 		return &backoff.StopBackOff{}
 	}

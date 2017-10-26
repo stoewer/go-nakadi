@@ -119,7 +119,7 @@ func (p *PublishAPI) PublishBusinessEvent(events []BusinessEvent) error {
 // business events. Depending on the options used when creating the PublishAPI this method will retry
 // to publish the events if the were not successfully published.
 func (p *PublishAPI) Publish(events interface{}) error {
-	response, err := p.client.httpPOST(p.backOffConf.createBackOff(), p.publishURL, events)
+	response, err := p.client.httpPOST(p.backOffConf.create(), p.publishURL, events)
 	if err != nil {
 		return errors.Wrap(err, "unable to publish event")
 	}
