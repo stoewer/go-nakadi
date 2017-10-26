@@ -99,7 +99,8 @@ func NewProcessor(client *Client, subscriptionID string, options *ProcessorOptio
 		newStream: func(client *Client, id string, options *StreamOptions) streamAPI {
 			return NewStream(client, id, options)
 		},
-		timePerBatchPerStream: time.Duration(timePerBatchPerStream)}
+		timePerBatchPerStream: time.Duration(timePerBatchPerStream),
+		closeErrorCh:          make(chan error)}
 
 	for i := uint(0); i < options.StreamCount; i++ {
 		streamOptions := StreamOptions{
@@ -127,9 +128,10 @@ type Processor struct {
 	streamOptions         []StreamOptions
 	newStream             func(*Client, string, *StreamOptions) streamAPI
 	timePerBatchPerStream time.Duration
-	streams               []streamAPI
+	isStarted             bool
 	ctx                   context.Context
 	cancel                context.CancelFunc
+	closeErrorCh          chan error
 }
 
 // Operation defines a certain procedure that consumes the event data from a processor. An operation,
@@ -149,11 +151,10 @@ func (p *Processor) Start(operation Operation) error {
 	p.Lock()
 	defer p.Unlock()
 
-	if len(p.streams) > 0 {
+	if p.isStarted {
 		return errors.New("processor was already started")
 	}
-
-	p.streams = make([]streamAPI, len(p.streamOptions))
+	p.isStarted = true
 
 	for streamNo, options := range p.streamOptions {
 		go p.startSingleStream(operation, streamNo, options)
@@ -165,12 +166,13 @@ func (p *Processor) Start(operation Operation) error {
 // startSingleStream starts a single stream with a given stream number / position. After the stream has been
 // started it consumes events. In cases of errors the stream is closed and a new stream will be opened.
 func (p *Processor) startSingleStream(operation Operation, streamNo int, options StreamOptions) {
-	p.streams[streamNo] = p.newStream(p.client, p.subscriptionID, &options)
+	stream := p.newStream(p.client, p.subscriptionID, &options)
 
 	if p.timePerBatchPerStream > 0 {
 		initialWait := rand.Int63n(int64(p.timePerBatchPerStream))
 		select {
 		case <-p.ctx.Done():
+			p.closeErrorCh <- stream.Close()
 			return
 		case <-time.After(time.Duration(initialWait)):
 			// nothing
@@ -182,29 +184,32 @@ func (p *Processor) startSingleStream(operation Operation, streamNo int, options
 
 		select {
 		case <-p.ctx.Done():
+			p.closeErrorCh <- stream.Close()
 			return
 		default:
-			cursor, events, err := p.streams[streamNo].NextEvents()
+			cursor, events, err := stream.NextEvents()
 			if err != nil {
 				continue
 			}
 
 			err = operation(streamNo, cursor.NakadiStreamID, events)
 			if err != nil {
-				p.Lock()
-				p.streams[streamNo].Close()
-				p.streams[streamNo] = p.newStream(p.client, p.subscriptionID, &options)
-				p.Unlock()
+				err = stream.Close()
+				if err != nil {
+					options.NotifyErr(err, 0)
+				}
+				stream = p.newStream(p.client, p.subscriptionID, &options)
 				continue
 			}
 
-			p.streams[streamNo].CommitCursor(cursor)
+			stream.CommitCursor(cursor)
 		}
 
 		elapsed := time.Since(start)
 		if elapsed < p.timePerBatchPerStream {
 			select {
 			case <-p.ctx.Done():
+				p.closeErrorCh <- stream.Close()
 				return
 			case <-time.After(p.timePerBatchPerStream - elapsed):
 				// nothing
@@ -219,24 +224,21 @@ func (p *Processor) Stop() error {
 	p.Lock()
 	defer p.Unlock()
 
-	if len(p.streams) == 0 {
+	if !p.isStarted {
 		return errors.New("processor is not running")
 	}
 
 	p.cancel()
 
-	var allErrors []error
-	for _, s := range p.streams {
-		err := s.Close()
+	var errCount int
+	for i := 0; i < len(p.streamOptions); i++ {
+		err := <-p.closeErrorCh
 		if err != nil {
-			allErrors = append(allErrors, err)
+			errCount++
 		}
 	}
-
-	p.streams = nil
-
-	if len(allErrors) > 0 {
-		return errors.Errorf("%d streams had errors while closing the stream", len(allErrors))
+	if errCount > 0 {
+		return errors.Errorf("%d streams had errors while closing the stream", errCount)
 	}
 
 	return nil
