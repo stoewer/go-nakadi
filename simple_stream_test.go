@@ -118,7 +118,7 @@ func TestSimpleStream_nextEvents(t *testing.T) {
 		require.NoError(t, err)
 		return &simpleStream{
 			nakadiStreamID: "stream-id",
-			buffer:         bufio.NewReader(response.Body),
+			buffer:         bufio.NewReaderSize(response.Body, 0),
 			closer:         response.Body}
 	}
 
