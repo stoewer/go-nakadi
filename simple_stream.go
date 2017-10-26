@@ -72,10 +72,12 @@ func (s *simpleStream) nextEvents() (Cursor, []byte, error) {
 		return Cursor{}, nil, errors.New("failed to read next batch: stream is closed")
 	}
 
-	line, isPrefix, err := s.buffer.ReadLine()
+	fragment, isPrefix, err := s.buffer.ReadLine()
 	if err != nil {
 		return Cursor{}, nil, errors.Wrap(err, "failed to read next batch")
 	}
+	line := make([]byte, len(fragment))
+	copy(line, fragment)
 
 	for isPrefix {
 		var add []byte
