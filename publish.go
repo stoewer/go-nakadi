@@ -119,9 +119,11 @@ func (p *PublishAPI) PublishBusinessEvent(events []BusinessEvent) error {
 // business events. Depending on the options used when creating the PublishAPI this method will retry
 // to publish the events if the were not successfully published.
 func (p *PublishAPI) Publish(events interface{}) error {
-	response, err := p.client.httpPOST(p.backOffConf.create(), p.publishURL, events)
+	const errMsg = "unable to request event types"
+
+	response, err := p.client.httpPOST(p.backOffConf.create(), p.publishURL, events, errMsg)
 	if err != nil {
-		return errors.Wrap(err, "unable to publish event")
+		return err
 	}
 	defer response.Body.Close()
 
@@ -129,7 +131,7 @@ func (p *PublishAPI) Publish(events interface{}) error {
 		batchItemError := BatchItemsError{}
 		err := json.NewDecoder(response.Body).Decode(&batchItemError)
 		if err != nil {
-			return errors.Wrap(err, "unable to decode response body")
+			return errors.Wrapf(err, "%s: unable to decode response body", errMsg)
 		}
 		return batchItemError
 	}
@@ -137,7 +139,7 @@ func (p *PublishAPI) Publish(events interface{}) error {
 	if response.StatusCode != http.StatusOK {
 		buffer, err := ioutil.ReadAll(response.Body)
 		if err != nil {
-			return errors.Wrap(err, "unable to read response body")
+			return errors.Wrapf(err, "%s: unable to read response body", errMsg)
 		}
 		return decodeResponseToError(buffer, "unable to request event types")
 	}

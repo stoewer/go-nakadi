@@ -80,13 +80,13 @@ func New(url string, options *ClientOptions) *Client {
 func (c *Client) httpGET(backOff backoff.BackOff, url string, body interface{}, msg string) error {
 	request, err := http.NewRequest("GET", url, nil)
 	if err != nil {
-		return errors.Wrap(err, "unable to prepare request")
+		return errors.Wrapf(err, "%s: unable to prepare request", msg)
 	}
 
 	if c.tokenProvider != nil {
 		token, err := c.tokenProvider()
 		if err != nil {
-			return errors.Wrap(err, "unable to prepare request")
+			return errors.Wrapf(err, "%s: unable to prepare request", msg)
 		}
 		request.Header.Set("Authorization", "Bearer "+token)
 	}
@@ -94,11 +94,25 @@ func (c *Client) httpGET(backOff backoff.BackOff, url string, body interface{}, 
 	var response *http.Response
 	err = backoff.Retry(func() error {
 		response, err = c.httpClient.Do(request)
-		return errors.WithStack(err)
+		if err != nil {
+			return errors.Wrap(err, msg)
+		}
+
+		if response.StatusCode >= 500 {
+			buffer, err := ioutil.ReadAll(response.Body)
+			if err != nil {
+				return errors.Wrapf(err, "%s: unable to read response body", msg)
+			}
+			err = decodeResponseToError(buffer, msg)
+			response.Body.Close()
+			return err
+		}
+
+		return nil
 	}, backOff)
 
 	if err != nil {
-		return errors.Wrap(err, msg)
+		return err
 	}
 	defer response.Body.Close()
 
@@ -119,22 +133,22 @@ func (c *Client) httpGET(backOff backoff.BackOff, url string, body interface{}, 
 }
 
 // httpPUT sends json encoded data via PUT request and returns a response.
-func (c *Client) httpPUT(backOff backoff.BackOff, url string, body interface{}) (*http.Response, error) {
+func (c *Client) httpPUT(backOff backoff.BackOff, url string, body interface{}, msg string) (*http.Response, error) {
 	encoded, err := json.Marshal(body)
 	if err != nil {
-		return nil, errors.Wrap(err, "unable to encode json body")
+		return nil, errors.Wrapf(err, "%s: unable to encode json body", msg)
 	}
 
 	request, err := http.NewRequest("PUT", url, bytes.NewReader(encoded))
 	if err != nil {
-		return nil, errors.Wrap(err, "unable to prepare request")
+		return nil, errors.Wrapf(err, "%s: unable to prepare request", msg)
 	}
 
 	request.Header.Set("Content-Type", "application/json;charset=UTF-8")
 	if c.tokenProvider != nil {
 		token, err := c.tokenProvider()
 		if err != nil {
-			return nil, errors.Wrap(err, "unable to prepare request")
+			return nil, errors.Wrapf(err, "%s: unable to prepare request", msg)
 		}
 		request.Header.Set("Authorization", "Bearer "+token)
 	}
@@ -142,29 +156,43 @@ func (c *Client) httpPUT(backOff backoff.BackOff, url string, body interface{}) 
 	var response *http.Response
 	err = backoff.Retry(func() error {
 		response, err = c.httpClient.Do(request)
-		return errors.WithStack(err)
+		if err != nil {
+			return errors.Wrap(err, msg)
+		}
+
+		if response.StatusCode >= 500 {
+			buffer, err := ioutil.ReadAll(response.Body)
+			if err != nil {
+				return errors.Wrapf(err, "%s: unable to read response body", msg)
+			}
+			err = decodeResponseToError(buffer, msg)
+			response.Body.Close()
+			return err
+		}
+
+		return nil
 	}, backOff)
 
 	return response, err
 }
 
 // httpPOST sends json encoded data via POST request and returns a response.
-func (c *Client) httpPOST(backOff backoff.BackOff, url string, body interface{}) (*http.Response, error) {
+func (c *Client) httpPOST(backOff backoff.BackOff, url string, body interface{}, msg string) (*http.Response, error) {
 	encoded, err := json.Marshal(body)
 	if err != nil {
-		return nil, errors.Wrap(err, "unable to encode json body")
+		return nil, errors.Wrapf(err, "%s: unable to encode json body", msg)
 	}
 
 	request, err := http.NewRequest("POST", url, bytes.NewReader(encoded))
 	if err != nil {
-		return nil, errors.Wrap(err, "unable to prepare request")
+		return nil, errors.Wrapf(err, "%s: unable to prepare request", msg)
 	}
 
 	request.Header.Set("Content-Type", "application/json;charset=UTF-8")
 	if c.tokenProvider != nil {
 		token, err := c.tokenProvider()
 		if err != nil {
-			return nil, errors.Wrap(err, "unable to prepare request")
+			return nil, errors.Wrapf(err, "%s: unable to prepare request", msg)
 		}
 		request.Header.Set("Authorization", "Bearer "+token)
 	}
@@ -172,7 +200,21 @@ func (c *Client) httpPOST(backOff backoff.BackOff, url string, body interface{})
 	var response *http.Response
 	err = backoff.Retry(func() error {
 		response, err = c.httpClient.Do(request)
-		return errors.WithStack(err)
+		if err != nil {
+			return errors.Wrap(err, msg)
+		}
+
+		if response.StatusCode >= 500 {
+			buffer, err := ioutil.ReadAll(response.Body)
+			if err != nil {
+				return errors.Wrapf(err, "%s: unable to read response body", msg)
+			}
+			err = decodeResponseToError(buffer, msg)
+			response.Body.Close()
+			return err
+		}
+
+		return nil
 	}, backOff)
 
 	return response, err
@@ -183,13 +225,13 @@ func (c *Client) httpPOST(backOff backoff.BackOff, url string, body interface{})
 func (c *Client) httpDELETE(backOff backoff.BackOff, url, msg string) error {
 	request, err := http.NewRequest("DELETE", url, nil)
 	if err != nil {
-		return errors.Wrap(err, "unable to prepare request")
+		return errors.Wrapf(err, "%s: unable to prepare request", msg)
 	}
 
 	if c.tokenProvider != nil {
 		token, err := c.tokenProvider()
 		if err != nil {
-			return errors.Wrap(err, "unable to prepare request")
+			return errors.Wrapf(err, "%s: unable to prepare request", msg)
 		}
 		request.Header.Set("Authorization", "Bearer "+token)
 	}
@@ -197,18 +239,32 @@ func (c *Client) httpDELETE(backOff backoff.BackOff, url, msg string) error {
 	var response *http.Response
 	err = backoff.Retry(func() error {
 		response, err = c.httpClient.Do(request)
-		return errors.WithStack(err)
+		if err != nil {
+			return errors.Wrap(err, msg)
+		}
+
+		if response.StatusCode >= 500 {
+			buffer, err := ioutil.ReadAll(response.Body)
+			if err != nil {
+				return errors.Wrapf(err, "%s: unable to read response body", msg)
+			}
+			err = decodeResponseToError(buffer, msg)
+			response.Body.Close()
+			return err
+		}
+
+		return nil
 	}, backOff)
 
 	if err != nil {
-		return errors.Wrap(err, msg)
+		return err
 	}
 	defer response.Body.Close()
 
 	if response.StatusCode != http.StatusOK && response.StatusCode != http.StatusNoContent {
 		buffer, err := ioutil.ReadAll(response.Body)
 		if err != nil {
-			return errors.Wrap(err, "unable to read response body")
+			return errors.Wrapf(err, "%s: unable to read response body", msg)
 		}
 		return decodeResponseToError(buffer, msg)
 	}

@@ -164,7 +164,7 @@ func TestClient_httpPUT(t *testing.T) {
 		client := setupClient(nil)
 		httpmock.RegisterResponder("PUT", url, httpmock.NewErrorResponder(assert.AnError))
 
-		_, err := client.httpPUT(&backoff.StopBackOff{}, url, &expected)
+		_, err := client.httpPUT(&backoff.StopBackOff{}, url, &expected, "error message")
 
 		require.Error(t, err)
 		assert.Regexp(t, assert.AnError, err)
@@ -175,7 +175,7 @@ func TestClient_httpPUT(t *testing.T) {
 		client.tokenProvider = func() (string, error) { return "", assert.AnError }
 		httpmock.RegisterResponder("PUT", url, httpmock.NewStringResponder(http.StatusOK, ""))
 
-		_, err := client.httpPUT(&backoff.StopBackOff{}, url, &expected)
+		_, err := client.httpPUT(&backoff.StopBackOff{}, url, &expected, "error message")
 
 		require.Error(t, err)
 		assert.Regexp(t, assert.AnError, err)
@@ -189,7 +189,7 @@ func TestClient_httpPUT(t *testing.T) {
 			return httpmock.NewStringResponse(http.StatusOK, ""), nil
 		})
 
-		response, err := client.httpPUT(&backoff.StopBackOff{}, url, &expected)
+		response, err := client.httpPUT(&backoff.StopBackOff{}, url, &expected, "error message")
 
 		require.NoError(t, err)
 		assert.Equal(t, http.StatusOK, response.StatusCode)
@@ -207,7 +207,7 @@ func TestClient_httpPUT(t *testing.T) {
 			return httpmock.NewStringResponse(http.StatusOK, ""), nil
 		})
 
-		response, err := client.httpPUT(&backoff.ZeroBackOff{}, url, &expected)
+		response, err := client.httpPUT(&backoff.ZeroBackOff{}, url, &expected, "error message")
 
 		require.NoError(t, err)
 		assert.Equal(t, http.StatusOK, response.StatusCode)
@@ -224,7 +224,7 @@ func TestClient_httpPUT(t *testing.T) {
 			return httpmock.NewStringResponse(http.StatusOK, ""), nil
 		})
 
-		response, err := client.httpPUT(&backoff.StopBackOff{}, url, &expected)
+		response, err := client.httpPUT(&backoff.StopBackOff{}, url, &expected, "error message")
 
 		require.NoError(t, err)
 		assert.Equal(t, http.StatusOK, response.StatusCode)
@@ -248,7 +248,7 @@ func TestClient_httpPOST(t *testing.T) {
 		client := setupClient(nil)
 		httpmock.RegisterResponder("POST", url, httpmock.NewErrorResponder(assert.AnError))
 
-		_, err := client.httpPOST(&backoff.StopBackOff{}, url, &expected)
+		_, err := client.httpPOST(&backoff.StopBackOff{}, url, &expected, "error message")
 
 		require.Error(t, err)
 		assert.Regexp(t, assert.AnError, err)
@@ -259,7 +259,7 @@ func TestClient_httpPOST(t *testing.T) {
 		client.tokenProvider = func() (string, error) { return "", assert.AnError }
 		httpmock.RegisterResponder("POST", url, httpmock.NewStringResponder(http.StatusOK, ""))
 
-		_, err := client.httpPOST(&backoff.StopBackOff{}, url, &expected)
+		_, err := client.httpPOST(&backoff.StopBackOff{}, url, &expected, "error message")
 
 		require.Error(t, err)
 		assert.Regexp(t, assert.AnError, err)
@@ -273,7 +273,7 @@ func TestClient_httpPOST(t *testing.T) {
 			return httpmock.NewStringResponse(http.StatusOK, ""), nil
 		})
 
-		response, err := client.httpPOST(&backoff.StopBackOff{}, url, &expected)
+		response, err := client.httpPOST(&backoff.StopBackOff{}, url, &expected, "error message")
 
 		require.NoError(t, err)
 		assert.Equal(t, http.StatusOK, response.StatusCode)
@@ -291,7 +291,7 @@ func TestClient_httpPOST(t *testing.T) {
 			return httpmock.NewStringResponse(http.StatusOK, ""), nil
 		})
 
-		response, err := client.httpPOST(&backoff.ZeroBackOff{}, url, &expected)
+		response, err := client.httpPOST(&backoff.ZeroBackOff{}, url, &expected, "error message")
 
 		require.NoError(t, err)
 		assert.Equal(t, http.StatusOK, response.StatusCode)
@@ -308,7 +308,7 @@ func TestClient_httpPOST(t *testing.T) {
 			return httpmock.NewStringResponse(http.StatusOK, ""), nil
 		})
 
-		response, err := client.httpPOST(&backoff.StopBackOff{}, url, &expected)
+		response, err := client.httpPOST(&backoff.StopBackOff{}, url, &expected, "error message")
 
 		require.NoError(t, err)
 		assert.Equal(t, http.StatusOK, response.StatusCode)
