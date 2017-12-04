@@ -126,18 +126,20 @@ func (e *EventAPI) Get(name string) (*EventType, error) {
 
 // Create saves a new event type.
 func (e *EventAPI) Create(eventType *EventType) error {
-	response, err := e.client.httpPOST(e.backOffConf.create(), e.eventBaseURL(), eventType)
+	const errMsg = "unable to create event type"
+
+	response, err := e.client.httpPOST(e.backOffConf.create(), e.eventBaseURL(), eventType, errMsg)
 	if err != nil {
-		return errors.Wrap(err, "unable to create event type")
+		return err
 	}
 	defer response.Body.Close()
 
 	if response.StatusCode != http.StatusCreated {
 		buffer, err := ioutil.ReadAll(response.Body)
 		if err != nil {
-			return errors.Wrap(err, "unable to read response body")
+			return errors.Wrapf(err, "%s: unable to read response body", errMsg)
 		}
-		return decodeResponseToError(buffer, "unable to create event type")
+		return decodeResponseToError(buffer, errMsg)
 	}
 
 	return nil
@@ -145,16 +147,18 @@ func (e *EventAPI) Create(eventType *EventType) error {
 
 // Update updates an existing event type.
 func (e *EventAPI) Update(eventType *EventType) error {
-	response, err := e.client.httpPUT(e.backOffConf.create(), e.eventURL(eventType.Name), eventType)
+	const errMsg = "unable to update event type"
+
+	response, err := e.client.httpPUT(e.backOffConf.create(), e.eventURL(eventType.Name), eventType, errMsg)
 	if err != nil {
-		return errors.Wrap(err, "unable to update event type")
+		return err
 	}
 	defer response.Body.Close()
 
 	if response.StatusCode != http.StatusOK {
 		buffer, err := ioutil.ReadAll(response.Body)
 		if err != nil {
-			return errors.Wrap(err, "unable to read response body")
+			return errors.Wrapf(err, "%s: unable to read response body", errMsg)
 		}
 		return decodeResponseToError(buffer, "unable to update event type")
 	}

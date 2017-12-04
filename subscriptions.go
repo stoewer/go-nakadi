@@ -101,24 +101,26 @@ func (s *SubscriptionAPI) Get(id string) (*Subscription, error) {
 // Create initializes a new subscription. If the subscription already exists the pre existing subscription
 // is returned.
 func (s *SubscriptionAPI) Create(subscription *Subscription) (*Subscription, error) {
-	response, err := s.client.httpPOST(s.backOffConf.create(), s.subBaseURL(), subscription)
+	const errMsg = "unable to create subscription"
+
+	response, err := s.client.httpPOST(s.backOffConf.create(), s.subBaseURL(), subscription, errMsg)
 	if err != nil {
-		return nil, errors.Wrap(err, "unable to create subscription")
+		return nil, err
 	}
 	defer response.Body.Close()
 
 	if response.StatusCode != http.StatusOK && response.StatusCode != http.StatusCreated {
 		buffer, err := ioutil.ReadAll(response.Body)
 		if err != nil {
-			return nil, errors.Wrap(err, "unable to read response body")
+			return nil, errors.Wrapf(err, "%s: unable to read response body", errMsg)
 		}
-		return nil, decodeResponseToError(buffer, "unable to create subscription")
+		return nil, decodeResponseToError(buffer, errMsg)
 	}
 
 	subscription = &Subscription{}
 	err = json.NewDecoder(response.Body).Decode(subscription)
 	if err != nil {
-		return nil, errors.Wrap(err, "unable to decode response body")
+		return nil, errors.Wrapf(err, "%s: unable to decode response body", errMsg)
 	}
 
 	return subscription, nil

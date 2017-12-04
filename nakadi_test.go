@@ -117,6 +117,25 @@ func TestClient_httpGET(t *testing.T) {
 		assert.Equal(t, map[string]string{"key": "value"}, body)
 	})
 
+	t.Run("success after 500 and retry", func(t *testing.T) {
+		client := setupClient(nil)
+
+		counter := helperMakeCounter(5)
+		httpmock.RegisterResponder("GET", url, func(r *http.Request) (*http.Response, error) {
+			retry := <-counter
+			if retry < 4 {
+				return httpmock.NewStringResponse(http.StatusInternalServerError, ""), nil
+			}
+			return httpmock.NewStringResponse(http.StatusOK, encoded), nil
+		})
+
+		err := client.httpGET(&backoff.ZeroBackOff{}, url, &body, msg)
+
+		require.NoError(t, err)
+		assert.Equal(t, map[string]string{"key": "value"}, body)
+		assert.Equal(t, 5, <-counter)
+	})
+
 	t.Run("success after retry", func(t *testing.T) {
 		client := setupClient(nil)
 
@@ -160,11 +179,21 @@ func TestClient_httpPUT(t *testing.T) {
 			httpClient:    http.DefaultClient}
 	}
 
+	t.Run("fail encode request body", func(t *testing.T) {
+		client := setupClient(nil)
+		httpmock.RegisterResponder("PUT", url, httpmock.NewStringResponder(200, ""))
+
+		_, err := client.httpPUT(&backoff.StopBackOff{}, url, brokenMarshaler{}, "error message")
+
+		require.Error(t, err)
+		assert.Regexp(t, assert.AnError, err)
+	})
+
 	t.Run("fail connection error", func(t *testing.T) {
 		client := setupClient(nil)
 		httpmock.RegisterResponder("PUT", url, httpmock.NewErrorResponder(assert.AnError))
 
-		_, err := client.httpPUT(&backoff.StopBackOff{}, url, &expected)
+		_, err := client.httpPUT(&backoff.StopBackOff{}, url, &expected, "error message")
 
 		require.Error(t, err)
 		assert.Regexp(t, assert.AnError, err)
@@ -175,7 +204,7 @@ func TestClient_httpPUT(t *testing.T) {
 		client.tokenProvider = func() (string, error) { return "", assert.AnError }
 		httpmock.RegisterResponder("PUT", url, httpmock.NewStringResponder(http.StatusOK, ""))
 
-		_, err := client.httpPUT(&backoff.StopBackOff{}, url, &expected)
+		_, err := client.httpPUT(&backoff.StopBackOff{}, url, &expected, "error message")
 
 		require.Error(t, err)
 		assert.Regexp(t, assert.AnError, err)
@@ -189,10 +218,29 @@ func TestClient_httpPUT(t *testing.T) {
 			return httpmock.NewStringResponse(http.StatusOK, ""), nil
 		})
 
-		response, err := client.httpPUT(&backoff.StopBackOff{}, url, &expected)
+		response, err := client.httpPUT(&backoff.StopBackOff{}, url, &expected, "error message")
 
 		require.NoError(t, err)
 		assert.Equal(t, http.StatusOK, response.StatusCode)
+	})
+
+	t.Run("success after 500 and retry", func(t *testing.T) {
+		client := setupClient(nil)
+
+		counter := helperMakeCounter(5)
+		httpmock.RegisterResponder("PUT", url, func(r *http.Request) (*http.Response, error) {
+			retry := <-counter
+			if retry < 4 {
+				return httpmock.NewStringResponse(http.StatusInternalServerError, ""), nil
+			}
+			return httpmock.NewStringResponse(http.StatusOK, ""), nil
+		})
+
+		response, err := client.httpPUT(&backoff.ZeroBackOff{}, url, &expected, "error message")
+
+		require.NoError(t, err)
+		assert.Equal(t, http.StatusOK, response.StatusCode)
+		assert.Equal(t, 5, <-counter)
 	})
 
 	t.Run("success after retry", func(t *testing.T) {
@@ -207,7 +255,7 @@ func TestClient_httpPUT(t *testing.T) {
 			return httpmock.NewStringResponse(http.StatusOK, ""), nil
 		})
 
-		response, err := client.httpPUT(&backoff.ZeroBackOff{}, url, &expected)
+		response, err := client.httpPUT(&backoff.ZeroBackOff{}, url, &expected, "error message")
 
 		require.NoError(t, err)
 		assert.Equal(t, http.StatusOK, response.StatusCode)
@@ -224,7 +272,7 @@ func TestClient_httpPUT(t *testing.T) {
 			return httpmock.NewStringResponse(http.StatusOK, ""), nil
 		})
 
-		response, err := client.httpPUT(&backoff.StopBackOff{}, url, &expected)
+		response, err := client.httpPUT(&backoff.StopBackOff{}, url, &expected, "error message")
 
 		require.NoError(t, err)
 		assert.Equal(t, http.StatusOK, response.StatusCode)
@@ -244,11 +292,21 @@ func TestClient_httpPOST(t *testing.T) {
 			httpClient:    http.DefaultClient}
 	}
 
+	t.Run("fail encode request body", func(t *testing.T) {
+		client := setupClient(nil)
+		httpmock.RegisterResponder("POST", url, httpmock.NewStringResponder(200, ""))
+
+		_, err := client.httpPOST(&backoff.StopBackOff{}, url, brokenMarshaler{}, "error message")
+
+		require.Error(t, err)
+		assert.Regexp(t, assert.AnError, err)
+	})
+
 	t.Run("fail connection error", func(t *testing.T) {
 		client := setupClient(nil)
 		httpmock.RegisterResponder("POST", url, httpmock.NewErrorResponder(assert.AnError))
 
-		_, err := client.httpPOST(&backoff.StopBackOff{}, url, &expected)
+		_, err := client.httpPOST(&backoff.StopBackOff{}, url, &expected, "error message")
 
 		require.Error(t, err)
 		assert.Regexp(t, assert.AnError, err)
@@ -259,7 +317,7 @@ func TestClient_httpPOST(t *testing.T) {
 		client.tokenProvider = func() (string, error) { return "", assert.AnError }
 		httpmock.RegisterResponder("POST", url, httpmock.NewStringResponder(http.StatusOK, ""))
 
-		_, err := client.httpPOST(&backoff.StopBackOff{}, url, &expected)
+		_, err := client.httpPOST(&backoff.StopBackOff{}, url, &expected, "error message")
 
 		require.Error(t, err)
 		assert.Regexp(t, assert.AnError, err)
@@ -273,10 +331,29 @@ func TestClient_httpPOST(t *testing.T) {
 			return httpmock.NewStringResponse(http.StatusOK, ""), nil
 		})
 
-		response, err := client.httpPOST(&backoff.StopBackOff{}, url, &expected)
+		response, err := client.httpPOST(&backoff.StopBackOff{}, url, &expected, "error message")
 
 		require.NoError(t, err)
 		assert.Equal(t, http.StatusOK, response.StatusCode)
+	})
+
+	t.Run("success after 500 and retry", func(t *testing.T) {
+		client := setupClient(nil)
+
+		counter := helperMakeCounter(5)
+		httpmock.RegisterResponder("POST", url, func(r *http.Request) (*http.Response, error) {
+			retry := <-counter
+			if retry < 4 {
+				return httpmock.NewStringResponse(http.StatusInternalServerError, ""), nil
+			}
+			return httpmock.NewStringResponse(http.StatusOK, ""), nil
+		})
+
+		response, err := client.httpPOST(&backoff.ZeroBackOff{}, url, &expected, "error message")
+
+		require.NoError(t, err)
+		assert.Equal(t, http.StatusOK, response.StatusCode)
+		assert.Equal(t, 5, <-counter)
 	})
 
 	t.Run("success after retry", func(t *testing.T) {
@@ -291,7 +368,7 @@ func TestClient_httpPOST(t *testing.T) {
 			return httpmock.NewStringResponse(http.StatusOK, ""), nil
 		})
 
-		response, err := client.httpPOST(&backoff.ZeroBackOff{}, url, &expected)
+		response, err := client.httpPOST(&backoff.ZeroBackOff{}, url, &expected, "error message")
 
 		require.NoError(t, err)
 		assert.Equal(t, http.StatusOK, response.StatusCode)
@@ -308,7 +385,7 @@ func TestClient_httpPOST(t *testing.T) {
 			return httpmock.NewStringResponse(http.StatusOK, ""), nil
 		})
 
-		response, err := client.httpPOST(&backoff.StopBackOff{}, url, &expected)
+		response, err := client.httpPOST(&backoff.StopBackOff{}, url, &expected, "error message")
 
 		require.NoError(t, err)
 		assert.Equal(t, http.StatusOK, response.StatusCode)
@@ -379,6 +456,24 @@ func TestClient_httpDELETE(t *testing.T) {
 		assert.Regexp(t, "unable to read response body", err)
 	})
 
+	t.Run("success after 500 and retry", func(t *testing.T) {
+		client := setupClient(nil)
+
+		counter := helperMakeCounter(5)
+		httpmock.RegisterResponder("DELETE", url, func(r *http.Request) (*http.Response, error) {
+			retry := <-counter
+			if retry < 4 {
+				return httpmock.NewStringResponse(http.StatusInternalServerError, ""), nil
+			}
+			return httpmock.NewStringResponse(http.StatusOK, ""), nil
+		})
+
+		err := client.httpDELETE(&backoff.ZeroBackOff{}, url, msg)
+
+		require.NoError(t, err)
+		assert.Equal(t, 5, <-counter)
+	})
+
 	t.Run("success after retry", func(t *testing.T) {
 		client := setupClient(nil)
 
@@ -405,4 +500,10 @@ func TestClient_httpDELETE(t *testing.T) {
 
 		assert.NoError(t, err)
 	})
+}
+
+type brokenMarshaler struct{}
+
+func (bu brokenMarshaler) MarshalJSON() ([]byte, error) {
+	return nil, assert.AnError
 }
