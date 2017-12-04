@@ -121,7 +121,7 @@ func TestNewProcessor(t *testing.T) {
 	assert.Equal(t, client, processor.client)
 	assert.Equal(t, testSubscriptionID, processor.subscriptionID)
 	assert.Len(t, processor.streamOptions, 1)
-	assert.Len(t, processor.streams, 0)
+	assert.False(t, processor.isStarted)
 	assert.Equal(t, 10*time.Second, processor.timePerBatchPerStream)
 	assert.NotNil(t, processor.ctx)
 	assert.NotNil(t, processor.cancel)
@@ -129,8 +129,8 @@ func TestNewProcessor(t *testing.T) {
 
 func TestProcessor_Start(t *testing.T) {
 	t.Run("fail running stream", func(t *testing.T) {
-		_, s, processor := setupMockProcessor()
-		processor.streams = []streamAPI{s}
+		_, _, processor := setupMockProcessor()
+		processor.isStarted = true
 
 		err := processor.Start(func(i int, id string, batch []byte) error { return nil })
 		require.Error(t, err)
@@ -301,7 +301,8 @@ func setupMockProcessor() (*mockNewStream, *mockStreamAPI, *Processor) {
 		cancel:                cancel,
 		newStream:             mockNewStream.NewStream,
 		timePerBatchPerStream: 100 * time.Millisecond,
-		streamOptions:         []StreamOptions{*testStreamOptions}}
+		streamOptions:         []StreamOptions{*testStreamOptions},
+		closeErrorCh:          make(chan error)}
 
 	return mockNewStream, mockStreamAPI, processor
 }
