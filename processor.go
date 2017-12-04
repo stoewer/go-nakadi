@@ -13,6 +13,8 @@ import (
 type ProcessorOptions struct {
 	// The maximum number of Events in each chunk (and therefore per partition) of the stream (default: 1)
 	BatchLimit uint
+	// Maximum time in seconds to wait for the flushing of each chunk (per partition).(default: 30)
+	FlushTimeout uint
 	// The number of parallel streams the Processor will use to consume events (default: 1)
 	StreamCount uint
 	// Limits the number of events that the processor will handle per minute. This value represents an
@@ -46,6 +48,9 @@ func (o *ProcessorOptions) withDefaults() *ProcessorOptions {
 	}
 	if copyOptions.BatchLimit == 0 {
 		copyOptions.BatchLimit = 1
+	}
+	if copyOptions.FlushTimeout == 0 {
+		copyOptions.FlushTimeout = 30
 	}
 	if copyOptions.StreamCount == 0 {
 		copyOptions.StreamCount = 1
@@ -104,6 +109,7 @@ func NewProcessor(client *Client, subscriptionID string, options *ProcessorOptio
 	for i := uint(0); i < options.StreamCount; i++ {
 		streamOptions := StreamOptions{
 			BatchLimit:           options.BatchLimit,
+			FlushTimeout:         options.FlushTimeout,
 			InitialRetryInterval: options.InitialRetryInterval,
 			MaxRetryInterval:     options.MaxRetryInterval,
 			CommitMaxElapsedTime: options.CommitMaxElapsedTime,

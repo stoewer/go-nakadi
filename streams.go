@@ -21,6 +21,8 @@ type Cursor struct {
 type StreamOptions struct {
 	// The maximum number of Events in each chunk (and therefore per partition) of the stream (default: 1)
 	BatchLimit uint
+	// Maximum time in seconds to wait for the flushing of each chunk (per partition).(default: 30)
+	FlushTimeout uint
 	// The initial (minimal) retry interval used for the exponential backoff. This value is applied for
 	// stream initialization as well as for cursor commits.
 	InitialRetryInterval time.Duration
@@ -79,7 +81,8 @@ func NewStream(client *Client, subscriptionID string, options *StreamOptions) *S
 		opener: &simpleStreamOpener{
 			client:         client,
 			subscriptionID: subscriptionID,
-			batchLimit:     options.BatchLimit},
+			batchLimit:     options.BatchLimit,
+			flushTimeout:   options.FlushTimeout},
 		committer: &simpleCommitter{
 			client:         client,
 			subscriptionID: subscriptionID},
