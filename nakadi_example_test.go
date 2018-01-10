@@ -10,7 +10,7 @@ import (
 
 func Example_complete() {
 	//  create a new client
-	client := nakadi.New("http://localhost:8080", &nakadi.ClientOptions{ConnectionTimeout: 500 * time.Millisecond})
+	client := nakadi.New("http://localhost:8080", &nakadi.ClientOptions{ConnectionTimeout: 2000 * time.Millisecond})
 
 	// create an event api create a new event type
 	eventAPI := nakadi.NewEventAPI(client, &nakadi.EventOptions{Retry: true})
