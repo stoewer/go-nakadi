@@ -10,6 +10,7 @@ import (
 	"net/http"
 
 	"github.com/pkg/errors"
+	"strings"
 )
 
 // simpleStreamOpener implements the streamOpener interface.
@@ -18,6 +19,7 @@ type simpleStreamOpener struct {
 	subscriptionID string
 	batchLimit     uint
 	flushTimeout   uint
+	maxUncommittedEvents uint
 }
 
 func (so *simpleStreamOpener) openStream() (streamer, error) {
@@ -55,10 +57,21 @@ func (so *simpleStreamOpener) openStream() (streamer, error) {
 }
 
 func (so *simpleStreamOpener) streamURL(id string) string {
-	if so.batchLimit != 0 && so.flushTimeout != 30 {
-		return fmt.Sprintf("%s/subscriptions/%s/events?batch_limit=%d&batch_flush_timeout=%d", so.client.nakadiURL, id, so.batchLimit, so.flushTimeout)
+	var queryParams []string
+	if so.batchLimit != 0 {
+		queryParams = append(queryParams, fmt.Sprintf("batch_limit=%d", so.batchLimit))
 	}
-	return fmt.Sprintf("%s/subscriptions/%s/events", so.client.nakadiURL, id)
+	if so.flushTimeout != 30 {
+		queryParams = append(queryParams, fmt.Sprintf("batch_flush_timeout=%d", so.flushTimeout))
+	}
+	if so.maxUncommittedEvents != 10 {
+		queryParams = append(queryParams, fmt.Sprintf("max_uncommitted_events=%d", so.maxUncommittedEvents))
+	}
+	var queryString = strings.Join(queryParams, "&")
+	if queryString != "" {
+		queryString = "?" + queryString
+	}
+	return fmt.Sprintf("%s/subscriptions/%s/events%s", so.client.nakadiURL, id, queryString)
 }
 
 // simpleStream implements the streamer interface.

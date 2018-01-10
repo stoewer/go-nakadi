@@ -22,6 +22,9 @@ type ProcessorOptions struct {
 	// or the actual batch size is lower than BatchLimit the actual number of processed events can be
 	// much lower. 0 is interpreted as no limit at all (default: no limit)
 	EventsPerMinute uint
+	//  The amount of uncommitted events Nakadi will stream before pausing the stream. When in paused
+	//  state and commit comes - the stream will resume (default: 10)
+	MaxUncommittedEvents uint
 	// The initial (minimal) retry interval used for the exponential backoff. This value is applied for
 	// stream initialization as well as for cursor commits.
 	InitialRetryInterval time.Duration
@@ -73,6 +76,9 @@ func (o *ProcessorOptions) withDefaults() *ProcessorOptions {
 	if copyOptions.NotifyOK == nil {
 		copyOptions.NotifyOK = func(_ uint) {}
 	}
+	if copyOptions.MaxUncommittedEvents == 0 {
+		copyOptions.MaxUncommittedEvents = 10
+	}
 	return &copyOptions
 }
 
@@ -111,6 +117,7 @@ func NewProcessor(client *Client, subscriptionID string, options *ProcessorOptio
 		streamOptions := StreamOptions{
 			BatchLimit:           options.BatchLimit,
 			FlushTimeout:         options.FlushTimeout,
+			MaxUncommittedEvents: options.MaxUncommittedEvents,
 			InitialRetryInterval: options.InitialRetryInterval,
 			MaxRetryInterval:     options.MaxRetryInterval,
 			CommitMaxElapsedTime: options.CommitMaxElapsedTime,
