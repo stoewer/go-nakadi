@@ -31,7 +31,7 @@ func TestIntegrationStreamAPI(t *testing.T) {
 	}
 
 	// stream events
-	streamAPI := NewStream(client, subscription.ID, &StreamOptions{BatchLimit: 2, CommitRetry: true})
+	streamAPI := NewStream(client, subscription.ID, &StreamOptions{BatchLimit: 4, MaxUncommittedEvents: 2, CommitRetry: true})
 	received := []DataChangeEvent{}
 	for len(received) < len(events) {
 		cursor, rawEvents, err := streamAPI.NextEvents()
