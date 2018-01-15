@@ -12,6 +12,7 @@ import (
 	"net/url"
 
 	"github.com/pkg/errors"
+	"strconv"
 )
 
 // simpleStreamOpener implements the streamOpener interface.
@@ -60,13 +61,14 @@ func (so *simpleStreamOpener) openStream() (streamer, error) {
 func (so *simpleStreamOpener) streamURL(id string) string {
 	queryParams := url.Values{}
 	if so.batchLimit > 0 {
-		queryParams.Add("batch_limit", fmt.Sprint(so.batchLimit))
+
+		queryParams.Add("batch_limit", strconv.FormatUint(uint64(so.batchLimit), 10))
 	}
 	if so.flushTimeout > 0 {
-		queryParams.Add("batch_flush_timeout", fmt.Sprint(so.flushTimeout))
+		queryParams.Add("batch_flush_timeout", strconv.FormatUint(uint64(so.flushTimeout), 10))
 	}
 	if so.maxUncommittedEvents > 0 {
-		queryParams.Add("max_uncommitted_events", fmt.Sprint(so.maxUncommittedEvents))
+		queryParams.Add("max_uncommitted_events", strconv.FormatUint(uint64(so.maxUncommittedEvents), 10))
 	}
 
 	return fmt.Sprintf("%s/subscriptions/%s/events?%s", so.client.nakadiURL, id, queryParams.Encode())
