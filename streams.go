@@ -23,6 +23,10 @@ type StreamOptions struct {
 	BatchLimit uint
 	// Maximum time in seconds to wait for the flushing of each chunk (per partition).(default: 30)
 	FlushTimeout uint
+	// The amount of uncommitted events Nakadi will stream before pausing the stream. When in paused
+	// state and commit comes - the stream will resume. If MaxUncommittedEvents is lower than BatchLimit,
+	// effective batch size will be upperbound by MaxUncommittedEvents. (default: 10, minimum: 1)
+	MaxUncommittedEvents uint
 	// The initial (minimal) retry interval used for the exponential backoff. This value is applied for
 	// stream initialization as well as for cursor commits.
 	InitialRetryInterval time.Duration
@@ -65,6 +69,9 @@ func (o *StreamOptions) withDefaults() *StreamOptions {
 	if copyOptions.NotifyOK == nil {
 		copyOptions.NotifyOK = func() {}
 	}
+	if copyOptions.MaxUncommittedEvents == 0 {
+		copyOptions.MaxUncommittedEvents = 10
+	}
 	return &copyOptions
 }
 
@@ -79,10 +86,11 @@ func NewStream(client *Client, subscriptionID string, options *StreamOptions) *S
 
 	streamAPI := &StreamAPI{
 		opener: &simpleStreamOpener{
-			client:         client,
-			subscriptionID: subscriptionID,
-			batchLimit:     options.BatchLimit,
-			flushTimeout:   options.FlushTimeout},
+			client:               client,
+			subscriptionID:       subscriptionID,
+			batchLimit:           options.BatchLimit,
+			flushTimeout:         options.FlushTimeout,
+			maxUncommittedEvents: options.MaxUncommittedEvents},
 		committer: &simpleCommitter{
 			client:         client,
 			subscriptionID: subscriptionID},

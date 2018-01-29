@@ -9,15 +9,19 @@ import (
 	"io/ioutil"
 	"net/http"
 
+	"net/url"
+
 	"github.com/pkg/errors"
+	"strconv"
 )
 
 // simpleStreamOpener implements the streamOpener interface.
 type simpleStreamOpener struct {
-	client         *Client
-	subscriptionID string
-	batchLimit     uint
-	flushTimeout   uint
+	client               *Client
+	subscriptionID       string
+	batchLimit           uint
+	flushTimeout         uint
+	maxUncommittedEvents uint
 }
 
 func (so *simpleStreamOpener) openStream() (streamer, error) {
@@ -55,10 +59,19 @@ func (so *simpleStreamOpener) openStream() (streamer, error) {
 }
 
 func (so *simpleStreamOpener) streamURL(id string) string {
-	if so.batchLimit != 0 && so.flushTimeout != 30 {
-		return fmt.Sprintf("%s/subscriptions/%s/events?batch_limit=%d&batch_flush_timeout=%d", so.client.nakadiURL, id, so.batchLimit, so.flushTimeout)
+	queryParams := url.Values{}
+	if so.batchLimit > 0 {
+
+		queryParams.Add("batch_limit", strconv.FormatUint(uint64(so.batchLimit), 10))
 	}
-	return fmt.Sprintf("%s/subscriptions/%s/events", so.client.nakadiURL, id)
+	if so.flushTimeout > 0 {
+		queryParams.Add("batch_flush_timeout", strconv.FormatUint(uint64(so.flushTimeout), 10))
+	}
+	if so.maxUncommittedEvents > 0 {
+		queryParams.Add("max_uncommitted_events", strconv.FormatUint(uint64(so.maxUncommittedEvents), 10))
+	}
+
+	return fmt.Sprintf("%s/subscriptions/%s/events?%s", so.client.nakadiURL, id, queryParams.Encode())
 }
 
 // simpleStream implements the streamer interface.

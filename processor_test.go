@@ -30,6 +30,7 @@ func TestProcessorOptions_withDefaults(t *testing.T) {
 				InitialRetryInterval: defaultInitialRetryInterval,
 				MaxRetryInterval:     defaultMaxRetryInterval,
 				CommitMaxElapsedTime: defaultMaxElapsedTime,
+				MaxUncommittedEvents: 10,
 			},
 		},
 		{
@@ -41,6 +42,7 @@ func TestProcessorOptions_withDefaults(t *testing.T) {
 				InitialRetryInterval: defaultInitialRetryInterval,
 				MaxRetryInterval:     defaultMaxRetryInterval,
 				CommitMaxElapsedTime: defaultMaxElapsedTime,
+				MaxUncommittedEvents: 10,
 			},
 		},
 		{
@@ -52,6 +54,7 @@ func TestProcessorOptions_withDefaults(t *testing.T) {
 				InitialRetryInterval: defaultInitialRetryInterval,
 				MaxRetryInterval:     defaultMaxRetryInterval,
 				CommitMaxElapsedTime: defaultMaxElapsedTime,
+				MaxUncommittedEvents: 10,
 			},
 		},
 		{
@@ -63,6 +66,7 @@ func TestProcessorOptions_withDefaults(t *testing.T) {
 				InitialRetryInterval: defaultInitialRetryInterval,
 				MaxRetryInterval:     defaultMaxRetryInterval,
 				CommitMaxElapsedTime: defaultMaxElapsedTime,
+				MaxUncommittedEvents: 10,
 			},
 		},
 		{
@@ -74,6 +78,7 @@ func TestProcessorOptions_withDefaults(t *testing.T) {
 				InitialRetryInterval: 123 * time.Millisecond,
 				MaxRetryInterval:     defaultMaxRetryInterval,
 				CommitMaxElapsedTime: defaultMaxElapsedTime,
+				MaxUncommittedEvents: 10,
 			},
 		},
 		{
@@ -85,6 +90,7 @@ func TestProcessorOptions_withDefaults(t *testing.T) {
 				InitialRetryInterval: defaultInitialRetryInterval,
 				MaxRetryInterval:     123 * time.Second,
 				CommitMaxElapsedTime: defaultMaxElapsedTime,
+				MaxUncommittedEvents: 10,
 			},
 		},
 		{
@@ -96,6 +102,19 @@ func TestProcessorOptions_withDefaults(t *testing.T) {
 				InitialRetryInterval: defaultInitialRetryInterval,
 				MaxRetryInterval:     defaultMaxRetryInterval,
 				CommitMaxElapsedTime: 123 * time.Second,
+				MaxUncommittedEvents: 10,
+			},
+		},
+		{
+			Options: &ProcessorOptions{MaxUncommittedEvents: 15},
+			Expected: &ProcessorOptions{
+				BatchLimit:           1,
+				StreamCount:          1,
+				EventsPerMinute:      0,
+				InitialRetryInterval: defaultInitialRetryInterval,
+				MaxRetryInterval:     defaultMaxRetryInterval,
+				CommitMaxElapsedTime: defaultMaxElapsedTime,
+				MaxUncommittedEvents: 15,
 			},
 		},
 	}
@@ -108,6 +127,7 @@ func TestProcessorOptions_withDefaults(t *testing.T) {
 		assert.Equal(t, tt.Expected.InitialRetryInterval, withDefaults.InitialRetryInterval)
 		assert.Equal(t, tt.Expected.MaxRetryInterval, withDefaults.MaxRetryInterval)
 		assert.Equal(t, tt.Expected.CommitMaxElapsedTime, withDefaults.CommitMaxElapsedTime)
+		assert.Equal(t, tt.Expected.MaxUncommittedEvents, withDefaults.MaxUncommittedEvents)
 		assert.NotNil(t, withDefaults.NotifyErr)
 		assert.NotNil(t, withDefaults.NotifyOK)
 	}
