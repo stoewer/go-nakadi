@@ -8,11 +8,10 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
-
 	"net/url"
+	"strconv"
 
 	"github.com/pkg/errors"
-	"strconv"
 )
 
 // simpleStreamOpener implements the streamOpener interface.
@@ -29,6 +28,7 @@ func (so *simpleStreamOpener) openStream() (streamer, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to create request")
 	}
+
 	if so.client.tokenProvider != nil {
 		token, err := so.client.tokenProvider()
 		if err != nil {
@@ -61,7 +61,6 @@ func (so *simpleStreamOpener) openStream() (streamer, error) {
 func (so *simpleStreamOpener) streamURL(id string) string {
 	queryParams := url.Values{}
 	if so.batchLimit > 0 {
-
 		queryParams.Add("batch_limit", strconv.FormatUint(uint64(so.batchLimit), 10))
 	}
 	if so.flushTimeout > 0 {
