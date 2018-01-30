@@ -13,6 +13,10 @@ import (
 	"gopkg.in/jarcoal/httpmock.v1"
 )
 
+const (
+	defaultNakadiURL = "http://localhost:8080"
+)
+
 func TestNew(t *testing.T) {
 	t.Run("with timeout", func(t *testing.T) {
 		timeout := 5 * time.Second

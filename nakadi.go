@@ -27,7 +27,6 @@ import (
 
 const (
 	defaultTimeOut              = 30 * time.Second
-	defaultNakadiURL            = "http://localhost:8080"
 	defaultInitialRetryInterval = time.Millisecond * 10
 	defaultMaxRetryInterval     = 10 * time.Second
 	defaultMaxElapsedTime       = 30 * time.Second
