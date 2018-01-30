@@ -1,0 +1,11 @@
+{
+  "Disable": [
+    "errcheck",
+    "gotypex",
+    "gocyclo"
+  ],
+  "Exclude": [
+    "Errors unhandled.,LOW,HIGH \\(gas\\)",
+    "declaration of \"err\" shadows declaration"
+  ]
+}
