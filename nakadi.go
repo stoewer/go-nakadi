@@ -27,7 +27,6 @@ import (
 
 const (
 	defaultTimeOut              = 30 * time.Second
-	defaultNakadiURL            = "http://localhost:8080"
 	defaultInitialRetryInterval = time.Millisecond * 10
 	defaultMaxRetryInterval     = 10 * time.Second
 	defaultMaxElapsedTime       = 30 * time.Second
@@ -78,21 +77,21 @@ func New(url string, options *ClientOptions) *Client {
 
 // httpGET fetches json encoded data with a GET request.
 func (c *Client) httpGET(backOff backoff.BackOff, url string, body interface{}, msg string) error {
-	request, err := http.NewRequest("GET", url, nil)
-	if err != nil {
-		return errors.Wrapf(err, "%s: unable to prepare request", msg)
-	}
-
-	if c.tokenProvider != nil {
-		token, err := c.tokenProvider()
-		if err != nil {
-			return errors.Wrapf(err, "%s: unable to prepare request", msg)
-		}
-		request.Header.Set("Authorization", "Bearer "+token)
-	}
-
 	var response *http.Response
-	err = backoff.Retry(func() error {
+	err := backoff.Retry(func() error {
+		request, err := http.NewRequest("GET", url, nil)
+		if err != nil {
+			return backoff.Permanent(errors.Wrapf(err, "%s: unable to prepare request", msg))
+		}
+
+		if c.tokenProvider != nil {
+			token, err := c.tokenProvider()
+			if err != nil {
+				return backoff.Permanent(errors.Wrapf(err, "%s: unable to prepare request", msg))
+			}
+			request.Header.Set("Authorization", "Bearer "+token)
+		}
+
 		response, err = c.httpClient.Do(request)
 		if err != nil {
 			return errors.Wrap(err, msg)
@@ -139,22 +138,22 @@ func (c *Client) httpPUT(backOff backoff.BackOff, url string, body interface{}, 
 		return nil, errors.Wrapf(err, "%s: unable to encode json body", msg)
 	}
 
-	request, err := http.NewRequest("PUT", url, bytes.NewReader(encoded))
-	if err != nil {
-		return nil, errors.Wrapf(err, "%s: unable to prepare request", msg)
-	}
-
-	request.Header.Set("Content-Type", "application/json;charset=UTF-8")
-	if c.tokenProvider != nil {
-		token, err := c.tokenProvider()
-		if err != nil {
-			return nil, errors.Wrapf(err, "%s: unable to prepare request", msg)
-		}
-		request.Header.Set("Authorization", "Bearer "+token)
-	}
-
 	var response *http.Response
 	err = backoff.Retry(func() error {
+		request, err := http.NewRequest("PUT", url, bytes.NewReader(encoded))
+		if err != nil {
+			return backoff.Permanent(errors.Wrapf(err, "%s: unable to prepare request", msg))
+		}
+
+		request.Header.Set("Content-Type", "application/json;charset=UTF-8")
+		if c.tokenProvider != nil {
+			token, err := c.tokenProvider()
+			if err != nil {
+				return backoff.Permanent(errors.Wrapf(err, "%s: unable to prepare request", msg))
+			}
+			request.Header.Set("Authorization", "Bearer "+token)
+		}
+
 		response, err = c.httpClient.Do(request)
 		if err != nil {
 			return errors.Wrap(err, msg)
@@ -183,22 +182,22 @@ func (c *Client) httpPOST(backOff backoff.BackOff, url string, body interface{},
 		return nil, errors.Wrapf(err, "%s: unable to encode json body", msg)
 	}
 
-	request, err := http.NewRequest("POST", url, bytes.NewReader(encoded))
-	if err != nil {
-		return nil, errors.Wrapf(err, "%s: unable to prepare request", msg)
-	}
-
-	request.Header.Set("Content-Type", "application/json;charset=UTF-8")
-	if c.tokenProvider != nil {
-		token, err := c.tokenProvider()
-		if err != nil {
-			return nil, errors.Wrapf(err, "%s: unable to prepare request", msg)
-		}
-		request.Header.Set("Authorization", "Bearer "+token)
-	}
-
 	var response *http.Response
 	err = backoff.Retry(func() error {
+		request, err := http.NewRequest("POST", url, bytes.NewReader(encoded))
+		if err != nil {
+			return backoff.Permanent(errors.Wrapf(err, "%s: unable to prepare request", msg))
+		}
+
+		request.Header.Set("Content-Type", "application/json;charset=UTF-8")
+		if c.tokenProvider != nil {
+			token, err := c.tokenProvider()
+			if err != nil {
+				return backoff.Permanent(errors.Wrapf(err, "%s: unable to prepare request", msg))
+			}
+			request.Header.Set("Authorization", "Bearer "+token)
+		}
+
 		response, err = c.httpClient.Do(request)
 		if err != nil {
 			return errors.Wrap(err, msg)
@@ -223,21 +222,21 @@ func (c *Client) httpPOST(backOff backoff.BackOff, url string, body interface{},
 // httpDELETE sends a DELETE request. On errors httpDELETE expects a response body to contain
 // an error message in the format of application/problem+json.
 func (c *Client) httpDELETE(backOff backoff.BackOff, url, msg string) error {
-	request, err := http.NewRequest("DELETE", url, nil)
-	if err != nil {
-		return errors.Wrapf(err, "%s: unable to prepare request", msg)
-	}
-
-	if c.tokenProvider != nil {
-		token, err := c.tokenProvider()
-		if err != nil {
-			return errors.Wrapf(err, "%s: unable to prepare request", msg)
-		}
-		request.Header.Set("Authorization", "Bearer "+token)
-	}
-
 	var response *http.Response
-	err = backoff.Retry(func() error {
+	err := backoff.Retry(func() error {
+		request, err := http.NewRequest("DELETE", url, nil)
+		if err != nil {
+			return backoff.Permanent(errors.Wrapf(err, "%s: unable to prepare request", msg))
+		}
+
+		if c.tokenProvider != nil {
+			token, err := c.tokenProvider()
+			if err != nil {
+				return backoff.Permanent(errors.Wrapf(err, "%s: unable to prepare request", msg))
+			}
+			request.Header.Set("Authorization", "Bearer "+token)
+		}
+
 		response, err = c.httpClient.Do(request)
 		if err != nil {
 			return errors.Wrap(err, msg)
