@@ -179,7 +179,12 @@ func (s *StreamAPI) startStream() {
 		}, streamBackOff, s.notifyErr)
 
 		if err != nil {
-			continue
+			select {
+			case <-s.ctx.Done():
+				return
+			default:
+				continue
+			}
 		}
 		s.notifyOK()
 
