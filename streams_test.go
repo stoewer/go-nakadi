@@ -10,6 +10,28 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func TestStreamAPI_startStreamLoop(t *testing.T) {
+	errorCh := make(chan error, 1)
+	okCh := make(chan struct{})
+	blockCh := make(chan time.Time, 1)
+	stream := &mockStreamer{}
+	streamAPI, opener, _ := setupMockStream(errorCh, okCh)
+
+	opener.On("openStream").Once().Return(stream, nil)
+	opener.On("openStream").Once().Return(nil, assert.AnError)
+	stream.On("nextEvents").Return(Cursor{}, nil, assert.AnError).WaitUntil(blockCh)
+	stream.On("closeStream").Return(nil)
+
+	blockCh <- time.Now()
+	<-okCh
+	streamAPI.cancel()
+	
+	<-time.After(time.Second)
+	//Wait for startStream to loop
+	// If startStream tries to open the stream again after streamAPI is closed,
+	// test will panic if openStream is called more than once.
+}
+
 func TestStreamAPI_startStream(t *testing.T) {
 	retryCh := make(chan error, 1)
 	okCh := make(chan struct{}, 1)
