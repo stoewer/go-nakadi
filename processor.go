@@ -122,9 +122,13 @@ func NewProcessor(client *Client, subscriptionID string, options *ProcessorOptio
 			InitialRetryInterval: options.InitialRetryInterval,
 			MaxRetryInterval:     options.MaxRetryInterval,
 			CommitMaxElapsedTime: options.CommitMaxElapsedTime,
-			NotifyErr:            func(err error, duration time.Duration) { options.NotifyErr(i, err, duration) },
-			NotifyOK:             func() { options.NotifyOK(i) }}
-
+			NotifyErr: func(streamNo uint) func(err error, duration time.Duration) {
+				return func(err error, duration time.Duration) { options.NotifyErr(streamNo, err, duration) }
+			}(i),
+			NotifyOK: func(streamNo uint) func() {
+				return func() { options.NotifyOK(streamNo) }
+			}(i),
+		}
 		processor.streamOptions = append(processor.streamOptions, streamOptions)
 	}
 
