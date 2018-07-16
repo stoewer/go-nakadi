@@ -115,6 +115,7 @@ func NewProcessor(client *Client, subscriptionID string, options *ProcessorOptio
 		closeErrorCh:          make(chan error)}
 
 	for i := uint(0); i < options.StreamCount; i++ {
+		streamNo := i
 		streamOptions := StreamOptions{
 			BatchLimit:           options.BatchLimit,
 			FlushTimeout:         options.FlushTimeout,
@@ -122,9 +123,9 @@ func NewProcessor(client *Client, subscriptionID string, options *ProcessorOptio
 			InitialRetryInterval: options.InitialRetryInterval,
 			MaxRetryInterval:     options.MaxRetryInterval,
 			CommitMaxElapsedTime: options.CommitMaxElapsedTime,
-			NotifyErr:            func(err error, duration time.Duration) { options.NotifyErr(i, err, duration) },
-			NotifyOK:             func() { options.NotifyOK(i) }}
-
+			NotifyErr:            func(err error, duration time.Duration) { options.NotifyErr(streamNo, err, duration) },
+			NotifyOK:             func() { options.NotifyOK(streamNo) },
+		}
 		processor.streamOptions = append(processor.streamOptions, streamOptions)
 	}
 
