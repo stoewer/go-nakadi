@@ -10,13 +10,27 @@ import (
 	"github.com/pkg/errors"
 )
 
+const (
+	// defaults used by http.DefaultTransport
+	defaultKeepAlive        = 30 * time.Second
+	defaultIdleConnTimeout  = 90 * time.Second
+	// nakadi specific timeouts
+	nakadiHeartbeatInterval = 30 * time.Second
+)
+
 // newHTTPClient crates an http client which is used for non streaming requests.
 func newHTTPClient(timeout time.Duration) *http.Client {
 	return &http.Client{
 		Timeout: timeout,
 		Transport: &http.Transport{
-			Proxy:               http.ProxyFromEnvironment,
-			Dial:                (&net.Dialer{Timeout: timeout}).Dial,
+			Proxy: http.ProxyFromEnvironment,
+			DialContext: (&net.Dialer{
+				Timeout:   timeout,
+				KeepAlive: defaultKeepAlive,
+				DualStack: true,
+			}).DialContext,
+			MaxIdleConns:        100,
+			IdleConnTimeout:     defaultIdleConnTimeout,
 			TLSHandshakeTimeout: timeout,
 		},
 	}
@@ -26,8 +40,13 @@ func newHTTPClient(timeout time.Duration) *http.Client {
 func newHTTPStream(timeout time.Duration) *http.Client {
 	return &http.Client{
 		Transport: &http.Transport{
-			Proxy:               http.ProxyFromEnvironment,
-			Dial:                (&net.Dialer{Timeout: timeout}).Dial,
+			Proxy: http.ProxyFromEnvironment,
+			DialContext: (&net.Dialer{
+				Timeout:   timeout,
+				DualStack: true,
+			}).DialContext,
+			MaxIdleConns:        100,
+			IdleConnTimeout:     2 * nakadiHeartbeatInterval,
 			TLSHandshakeTimeout: timeout,
 		},
 	}
