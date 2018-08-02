@@ -13,7 +13,10 @@ import (
 var (
 	testSubscriptionID = "9eacd55a-9d6c-11e7-86f0-53366f10d8d4"
 	testClient         = New(defaultNakadiURL, nil)
-	testStreamOptions  = &StreamOptions{}
+	testStreamOptions  = &StreamOptions{
+		NotifyErr: func(_ error, _ time.Duration) {},
+		NotifyOK:  func() {},
+	}
 )
 
 func TestProcessorOptions_withDefaults(t *testing.T) {
@@ -160,7 +163,7 @@ func TestProcessor_Start(t *testing.T) {
 	t.Run("fail reading batch", func(t *testing.T) {
 		newStream, streamAPI, processor := setupMockProcessor()
 
-		newStream.On("NewStream", testClient, testSubscriptionID, testStreamOptions).
+		newStream.On("NewStream", testClient, testSubscriptionID).
 			Return(streamAPI)
 		streamAPI.On("NextEvents").
 			Return(Cursor{}, nil, assert.AnError)
@@ -171,7 +174,7 @@ func TestProcessor_Start(t *testing.T) {
 		})
 
 		<-newStream.wait
-		newStream.AssertCalled(t, "NewStream", testClient, testSubscriptionID, testStreamOptions)
+		newStream.AssertCalled(t, "NewStream", testClient, testSubscriptionID)
 
 		<-streamAPI.wait
 		streamAPI.AssertCalled(t, "NextEvents")
@@ -181,7 +184,7 @@ func TestProcessor_Start(t *testing.T) {
 		batchCh := make(chan []byte, 1)
 		newStream, streamAPI, processor := setupMockProcessor()
 
-		newStream.On("NewStream", testClient, testSubscriptionID, testStreamOptions).
+		newStream.On("NewStream", testClient, testSubscriptionID).
 			Return(streamAPI)
 		streamAPI.On("Close").
 			Return(nil)
@@ -194,7 +197,7 @@ func TestProcessor_Start(t *testing.T) {
 		})
 
 		<-newStream.wait
-		newStream.AssertCalled(t, "NewStream", testClient, testSubscriptionID, testStreamOptions)
+		newStream.AssertCalled(t, "NewStream", testClient, testSubscriptionID)
 
 		<-streamAPI.wait
 		streamAPI.AssertCalled(t, "NextEvents")
@@ -206,14 +209,14 @@ func TestProcessor_Start(t *testing.T) {
 		streamAPI.AssertCalled(t, "Close")
 
 		<-newStream.wait
-		newStream.AssertCalled(t, "NewStream", testClient, testSubscriptionID, testStreamOptions)
+		newStream.AssertCalled(t, "NewStream", testClient, testSubscriptionID)
 	})
 
 	t.Run("successful processing", func(t *testing.T) {
 		batchCh := make(chan []byte, 1)
 		newStream, streamAPI, processor := setupMockProcessor()
 
-		newStream.On("NewStream", testClient, testSubscriptionID, testStreamOptions).
+		newStream.On("NewStream", testClient, testSubscriptionID).
 			Return(streamAPI)
 		streamAPI.On("CommitCursor", Cursor{}).
 			Return(nil)
@@ -226,7 +229,7 @@ func TestProcessor_Start(t *testing.T) {
 		})
 
 		<-newStream.wait
-		newStream.AssertCalled(t, "NewStream", testClient, testSubscriptionID, testStreamOptions)
+		newStream.AssertCalled(t, "NewStream", testClient, testSubscriptionID)
 
 		<-streamAPI.wait
 		streamAPI.AssertCalled(t, "NextEvents")
@@ -260,7 +263,7 @@ func TestProcessor_Stop(t *testing.T) {
 	t.Run("close with error", func(t *testing.T) {
 		newStream, streamAPI, processor := setupMockProcessor()
 
-		newStream.On("NewStream", testClient, testSubscriptionID, testStreamOptions).
+		newStream.On("NewStream", testClient, testSubscriptionID).
 			Return(streamAPI)
 		streamAPI.On("NextEvents").
 			Return(Cursor{}, []byte("batch no 1"), nil)
@@ -274,7 +277,7 @@ func TestProcessor_Stop(t *testing.T) {
 		})
 
 		<-newStream.wait
-		newStream.AssertCalled(t, "NewStream", testClient, testSubscriptionID, testStreamOptions)
+		newStream.AssertCalled(t, "NewStream", testClient, testSubscriptionID)
 
 		processor.Stop()
 
@@ -285,7 +288,7 @@ func TestProcessor_Stop(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
 		newStream, streamAPI, processor := setupMockProcessor()
 
-		newStream.On("NewStream", testClient, testSubscriptionID, testStreamOptions).
+		newStream.On("NewStream", testClient, testSubscriptionID).
 			Return(streamAPI)
 		streamAPI.On("NextEvents").
 			Return(Cursor{}, []byte("batch no 1"), nil)
@@ -299,7 +302,7 @@ func TestProcessor_Stop(t *testing.T) {
 		})
 
 		<-newStream.wait
-		newStream.AssertCalled(t, "NewStream", testClient, testSubscriptionID, testStreamOptions)
+		newStream.AssertCalled(t, "NewStream", testClient, testSubscriptionID)
 
 		<-streamAPI.wait
 		processor.Stop()
@@ -333,7 +336,7 @@ type mockNewStream struct {
 }
 
 func (m *mockNewStream) NewStream(client *Client, subscriptionID string, options *StreamOptions) streamAPI {
-	args := m.Called(client, subscriptionID, options)
+	args := m.Called(client, subscriptionID)
 	m.wait <- struct{}{}
 	return args.Get(0).(streamAPI)
 }
