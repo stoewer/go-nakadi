@@ -209,15 +209,17 @@ func (p *Processor) startSingleStream(operation Operation, streamNo int, options
 
 			err = operation(streamNo, cursor.NakadiStreamID, events)
 			if err != nil {
-				err = stream.Close()
-				if err != nil {
-					options.NotifyErr(err, 0)
-				}
+				options.NotifyErr(err, 0)
+				stream.Close()
 				stream = p.newStream(p.client, p.subscriptionID, &options)
 				continue
 			}
 
-			stream.CommitCursor(cursor)
+			err = stream.CommitCursor(cursor)
+			if err != nil {
+				options.NotifyErr(err, 0)
+				stream.Close()
+			}
 		}
 
 		elapsed := time.Since(start)
