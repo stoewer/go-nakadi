@@ -107,6 +107,7 @@ func (rc *backOffConfiguration) create() backoff.BackOff {
 	back.InitialInterval = rc.InitialRetryInterval
 	back.MaxInterval = rc.MaxRetryInterval
 	back.MaxElapsedTime = rc.MaxElapsedTime
+	back.Reset()
 
 	return back
 }
