@@ -264,3 +264,8 @@ func TestPublishOptions_withDefaults(t *testing.T) {
 		assert.Equal(t, tt.Expected, tt.Options.withDefaults())
 	}
 }
+
+func TestBatchItemsError_Format(t *testing.T) {
+	batchItemErr := BatchItemsError{{Detail: assert.AnError.Error()}}
+	assert.Regexp(t, assert.AnError, fmt.Sprintf("%+v", batchItemErr))
+}
