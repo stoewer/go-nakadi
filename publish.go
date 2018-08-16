@@ -7,7 +7,6 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
-	"sort"
 	"strings"
 	"time"
 
@@ -166,11 +165,18 @@ type BatchItemsError []BatchItemResponse
 
 // Error implements the error interface for BatchItemsError.
 func (err BatchItemsError) Error() string {
+	if err == nil {
+		return ""
+	}
 	return "one or many events may have not been published"
 }
 
 // Format implements fmt.Formatter for BatchItemsError
 func (err BatchItemsError) Format(s fmt.State, verb rune) {
+	if err == nil {
+		io.WriteString(s, "nil")
+		return
+	}
 	switch verb {
 	case 'v':
 		if s.Flag('+') {
@@ -178,13 +184,11 @@ func (err BatchItemsError) Format(s fmt.State, verb rune) {
 			for k, v := range err {
 				messages = append(messages, fmt.Sprintf("[%d]: %+v", k, v))
 			}
-			sort.Strings(messages)
 
 			builder := bytes.NewBuffer(make([]byte, 0))
 			switch len(err) {
 			case 0:
-				builder.WriteString("an error occurred while publishing event")
-				return
+				builder.WriteString("an unknown error occurred while publishing event")
 			case 1:
 				builder.WriteString("an error occurred while publishing event: ")
 			default:
