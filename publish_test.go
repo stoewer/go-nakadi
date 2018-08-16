@@ -264,3 +264,30 @@ func TestPublishOptions_withDefaults(t *testing.T) {
 		assert.Equal(t, tt.Expected, tt.Options.withDefaults())
 	}
 }
+
+func TestBatchItemsError_Format(t *testing.T) {
+	t.Run("format nil error", func(t *testing.T) {
+		var batchItemErr BatchItemsError
+		assert.Equal(t, "nil", fmt.Sprintf("%+v", batchItemErr))
+		assert.Equal(t, "", batchItemErr.Error())
+	})
+
+	t.Run("format unknown error", func(t *testing.T) {
+		batchItemErr := BatchItemsError{}
+		assert.Equal(t, "an unknown error occurred while publishing event", fmt.Sprintf("%+v", batchItemErr))
+		assert.Equal(t, "one or many events may have not been published", batchItemErr.Error())
+	})
+
+	t.Run("format batch items error", func(t *testing.T) {
+		batchItemErr := BatchItemsError{{Detail: assert.AnError.Error()}}
+		assert.Regexp(t, assert.AnError, fmt.Sprintf("%+v", batchItemErr))
+	})
+
+	t.Run("format multiple batch items error", func(t *testing.T) {
+		batchItemErr := BatchItemsError{
+			{EID: "1", Detail: "error 1"},
+			{EID: "2", Detail: "error 2"},
+		}
+		assert.Regexp(t, "errors occurred while publishing events:", fmt.Sprintf("%+v", batchItemErr))
+	})
+}
