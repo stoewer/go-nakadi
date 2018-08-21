@@ -122,7 +122,7 @@ func (s *simpleStream) nextEvents() (Cursor, []byte, error) {
 }
 
 func (s *simpleStream) readLineTimeout() ([]byte, bool, error) {
-	timer := time.AfterFunc(s.readTimeout, func() { s.closeStream() })
+	timer := time.AfterFunc(s.readTimeout, func() { s.closer.Close() })
 	defer timer.Stop()
 	return s.buffer.ReadLine()
 }
