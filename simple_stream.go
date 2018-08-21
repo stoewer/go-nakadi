@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"time"
 
 	"github.com/pkg/errors"
 )
@@ -53,7 +54,9 @@ func (so *simpleStreamOpener) openStream() (streamer, error) {
 	s := &simpleStream{
 		nakadiStreamID: response.Header.Get("X-Nakadi-StreamId"),
 		buffer:         bufio.NewReader(response.Body),
-		closer:         response.Body}
+		closer:         response.Body,
+		readTimeout:    2 * nakadiHeartbeatInterval,
+	}
 
 	return s, nil
 }
@@ -78,6 +81,7 @@ type simpleStream struct {
 	nakadiStreamID string
 	buffer         *bufio.Reader
 	closer         io.Closer
+	readTimeout    time.Duration
 }
 
 func (s *simpleStream) nextEvents() (Cursor, []byte, error) {
@@ -85,7 +89,7 @@ func (s *simpleStream) nextEvents() (Cursor, []byte, error) {
 		return Cursor{}, nil, errors.New("failed to read next batch: stream is closed")
 	}
 
-	fragment, isPrefix, err := s.buffer.ReadLine()
+	fragment, isPrefix, err := s.readLineTimeout()
 	if err != nil {
 		return Cursor{}, nil, errors.Wrap(err, "failed to read next batch")
 	}
@@ -94,7 +98,7 @@ func (s *simpleStream) nextEvents() (Cursor, []byte, error) {
 
 	for isPrefix {
 		var add []byte
-		add, isPrefix, err = s.buffer.ReadLine()
+		add, isPrefix, err = s.readLineTimeout()
 		if err != nil {
 			return Cursor{}, nil, errors.Wrap(err, "failed to read next batch")
 		}
@@ -115,6 +119,12 @@ func (s *simpleStream) nextEvents() (Cursor, []byte, error) {
 		return batch.Cursor, nil, nil
 	}
 	return batch.Cursor, []byte(*batch.Events), nil
+}
+
+func (s *simpleStream) readLineTimeout() ([]byte, bool, error) {
+	timer := time.AfterFunc(s.readTimeout, func() { s.closeStream() })
+	defer timer.Stop()
+	return s.buffer.ReadLine()
 }
 
 func (s *simpleStream) closeStream() error {
