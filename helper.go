@@ -12,8 +12,8 @@ import (
 
 const (
 	// defaults used by http.DefaultTransport
-	defaultKeepAlive        = 30 * time.Second
-	defaultIdleConnTimeout  = 90 * time.Second
+	defaultKeepAlive       = 30 * time.Second
+	defaultIdleConnTimeout = 90 * time.Second
 	// nakadi specific timeouts
 	nakadiHeartbeatInterval = 30 * time.Second
 )
@@ -43,6 +43,7 @@ func newHTTPStream(timeout time.Duration) *http.Client {
 			Proxy: http.ProxyFromEnvironment,
 			DialContext: (&net.Dialer{
 				Timeout:   timeout,
+				KeepAlive: 2 * nakadiHeartbeatInterval,
 				DualStack: true,
 			}).DialContext,
 			MaxIdleConns:        100,
