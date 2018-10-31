@@ -1,12 +1,11 @@
 {
   "Disable": [
-    "errcheck",
-    "gotypex",
-    "gocyclo"
+    "errcheck"
   ],
   "Exclude": [
-    "Errors unhandled.,LOW,HIGH \\(gosec\\)",
-    "Errors unhandled.,LOW,HIGH \\(gas\\)",
-    "declaration of \"err\" shadows declaration"
-  ]
+    "warning: declaration of \"err\" shadows declaration at",
+    "warning: Errors unhandled.,LOW,HIGH \\(gosec\\)",
+    "nakadi_example_test.go"
+  ],
+  "Cyclo": 15
 }

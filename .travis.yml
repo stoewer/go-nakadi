@@ -3,8 +3,7 @@ sudo: required
 language: go
 
 go:
-- "1.9"
-- "1.10"
+- '1.11'
 
 services:
   - docker
@@ -12,10 +11,10 @@ services:
 addons:
   hosts:
   - localhost
-  hostname: localhost
 
 env:
   global:
+  - GO111MODULE=on
   - DOCKER_COMPOSE_VERSION="1.22.0"
 
 before_cache:
@@ -35,22 +34,18 @@ before_install:
 
 install:
 - git clone https://github.com/zalando/nakadi.git nakadi
-- go get -v github.com/pkg/errors
-- go get -v -u github.com/alecthomas/gometalinter
-- gometalinter --install
-- go get -v github.com/mattn/goveralls
-- go get -v github.com/stretchr/testify/...
-- go get -v github.com/cenkalti/backoff
-- go get -v github.com/pkg/errors
-- go get -v gopkg.in/jarcoal/httpmock.v1
+- GO111MODULE=off go get github.com/alecthomas/gometalinter
+- GO111MODULE=off gometalinter --install --force
+- go get github.com/mattn/goveralls
 
 before_script:
 - sudo /etc/init.d/postgresql stop
 - (cd nakadi && ./gradlew startNakadi)
 
 script:
-- gometalinter --config=.gometalinter.json --deadline=10m .
-- go test -v -tags=integration -covermode=count -coverprofile=profile.cov .
+- go mod vendor -v
+- GO111MODULE=off gometalinter --config=.gometalinter.json --deadline=10m .
+- go test -mod=readonly -v -tags=integration -coverprofile=profile.cov ./...
 
 after_script:
 - (cd nakadi && ./gradlew stopNakadi)
