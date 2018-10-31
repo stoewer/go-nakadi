@@ -13,8 +13,9 @@ addons:
   - localhost
 
 env:
-- GO111MODULE=on
-- DOCKER_COMPOSE_VERSION="1.22.0"
+  global:
+  - GO111MODULE=on
+  - DOCKER_COMPOSE_VERSION="1.22.0"
 
 before_cache:
   - rm -f  $HOME/.gradle/caches/modules-2/modules-2.lock
