@@ -31,6 +31,8 @@ type UndefinedEvent struct {
 }
 
 // BusinessEvent represents a Nakadi events from the category "business".
+//
+// Deprecated: use a custom struct and embed UndefinedEvent instead.
 type BusinessEvent struct {
 	Metadata    EventMetadata `json:"metadata"`
 	OrderNumber string        `json:"order_number"`
@@ -114,6 +116,8 @@ func (p *PublishAPI) PublishDataChangeEvent(events []DataChangeEvent) error {
 
 // PublishBusinessEvent emits a batch of business events. Depending on the options used when creating
 // the PublishAPI this method will retry to publish the events if the were not successfully published.
+//
+// Deprecated: use Publish with a custom struct with embedded UndefinedEvent instead.
 func (p *PublishAPI) PublishBusinessEvent(events []BusinessEvent) error {
 	return p.Publish(events)
 }
