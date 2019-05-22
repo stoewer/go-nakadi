@@ -44,17 +44,20 @@ func TestIntegrationEventAPI_Get(t *testing.T) {
 }
 
 func TestIntegrationEventAPI_List(t *testing.T) {
-	expected := []*EventType{}
+	client := New(defaultNakadiURL, &ClientOptions{ConnectionTimeout: time.Second})
+	eventAPI := NewEventAPI(client, nil)
+
+	preconfiguredTypes, err := eventAPI.List()
+	require.NoError(t, err)
+
+	var expected []*EventType
 	helperLoadTestData(t, "event-types-create.json", &expected)
 	helperCreateEventTypes(t, expected...)
 	defer helperDeleteEventTypes(t, expected...)
 
-	client := New(defaultNakadiURL, &ClientOptions{ConnectionTimeout: time.Second})
-	eventAPI := NewEventAPI(client, nil)
-
-	eventTypes, err := eventAPI.List()
+	allTypes, err := eventAPI.List()
 	require.NoError(t, err)
-	assert.Len(t, eventTypes, 2)
+	assert.Len(t, allTypes, len(preconfiguredTypes) + len(expected))
 }
 
 func TestIntegrationEventAPI_Create(t *testing.T) {
