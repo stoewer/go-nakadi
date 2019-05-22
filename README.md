@@ -36,13 +36,13 @@ Dependencies
 
 Build dependencies
 
-* github.com/cenkalti/backoff
+* github.com/cenkalti/backoff/v3
 * github.com/pkg/errors
 
 Test dependencies
 
 * github.com/stretchr/testify
-* gopkg.in/jarcoal/httpmock.v1
+* github.com/jarcoal/httpmock
 
 Run unit and integration tests
 ------------------------------

@@ -9,9 +9,9 @@ import (
 
 	"time"
 
+	"github.com/jarcoal/httpmock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"gopkg.in/jarcoal/httpmock.v1"
 )
 
 type SomeData struct {

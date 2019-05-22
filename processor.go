@@ -219,6 +219,8 @@ func (p *Processor) startSingleStream(operation Operation, streamNo int, options
 			if err != nil {
 				options.NotifyErr(err, 0)
 				stream.Close()
+				stream = p.newStream(p.client, p.subscriptionID, &options)
+				continue
 			}
 		}
 
