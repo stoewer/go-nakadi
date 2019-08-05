@@ -13,6 +13,7 @@ func Example_complete() {
 	client := nakadi.New("http://localhost:8080", &nakadi.ClientOptions{ConnectionTimeout: 500 * time.Millisecond})
 
 	// create an event api create a new event type
+
 	eventAPI := nakadi.NewEventAPI(client, &nakadi.EventOptions{Retry: true})
 	eventType := &nakadi.EventType{
 		Name:                 "test-type",
@@ -31,11 +32,17 @@ func Example_complete() {
 	}
 
 	// create a new subscription API and a new subscription
+
 	subAPI := nakadi.NewSubscriptionAPI(client, &nakadi.SubscriptionOptions{Retry: true})
+	auth := SubscriptionAuthorization{
+		Admins:  []AuthorizationAttribute{{DataType: "service", Value: "test-service"}},
+		Readers: []AuthorizationAttribute{{DataType: "service", Value: "test-service"}},
+	}
 	sub := &nakadi.Subscription{
 		OwningApplication: "another-app",
 		EventTypes:        []string{"test-type"},
 		ReadFrom:          "begin",
+		Authorization:     auth,
 	}
 	sub, err = subAPI.Create(sub)
 	if err != nil {
