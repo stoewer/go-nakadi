@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"strconv"
 	"testing"
-
 	"time"
 
 	"github.com/jarcoal/httpmock"
@@ -51,12 +50,11 @@ func TestEventAPI_Get(t *testing.T) {
 	})
 
 	t.Run("fail with problem", func(t *testing.T) {
-		problem := `{"detail": "not found"}`
-		httpmock.RegisterResponder("GET", url, httpmock.NewStringResponder(http.StatusNotFound, problem))
+		httpmock.RegisterResponder("GET", url, httpmock.NewStringResponder(http.StatusNotFound, testProblemJSON))
 
 		_, err := api.Get(expected.Name)
 		require.Error(t, err)
-		assert.Regexp(t, "not found", err)
+		assert.Regexp(t, "some problem detail", err)
 	})
 
 	t.Run("fail decode response", func(t *testing.T) {
@@ -104,12 +102,11 @@ func TestEventAPI_List(t *testing.T) {
 	})
 
 	t.Run("fail with problem", func(t *testing.T) {
-		problem := `{"detail": "not found"}`
-		httpmock.RegisterResponder("GET", url, httpmock.NewStringResponder(http.StatusInternalServerError, problem))
+		httpmock.RegisterResponder("GET", url, httpmock.NewStringResponder(http.StatusInternalServerError, testProblemJSON))
 
 		_, err := api.List()
 		require.Error(t, err)
-		assert.Regexp(t, "not found", err)
+		assert.Regexp(t, "some problem detail", err)
 	})
 
 	t.Run("fail decode response", func(t *testing.T) {
@@ -139,7 +136,7 @@ func TestEventAPI_Create(t *testing.T) {
 	client := &Client{
 		nakadiURL:     defaultNakadiURL,
 		httpClient:    http.DefaultClient,
-		tokenProvider: func() (string, error) { return "token", nil }}
+		tokenProvider: func() (string, error) { return testToken, nil }}
 	api := NewEventAPI(client, nil)
 	url := fmt.Sprintf("%s/event-types", defaultNakadiURL)
 
@@ -152,12 +149,11 @@ func TestEventAPI_Create(t *testing.T) {
 	})
 
 	t.Run("fail with problem", func(t *testing.T) {
-		problem := `{"detail": "not valid"}`
-		httpmock.RegisterResponder("POST", url, httpmock.NewStringResponder(http.StatusConflict, problem))
+		httpmock.RegisterResponder("POST", url, httpmock.NewStringResponder(http.StatusConflict, testProblemJSON))
 
 		err := api.Create(eventType)
 		require.Error(t, err)
-		assert.Regexp(t, "not valid", err)
+		assert.Regexp(t, "some problem detail", err)
 	})
 
 	t.Run("fail to read body", func(t *testing.T) {
@@ -197,7 +193,7 @@ func TestEventAPI_Update(t *testing.T) {
 	client := &Client{
 		nakadiURL:     defaultNakadiURL,
 		httpClient:    http.DefaultClient,
-		tokenProvider: func() (string, error) { return "token", nil }}
+		tokenProvider: func() (string, error) { return testToken, nil }}
 	api := NewEventAPI(client, nil)
 	url := fmt.Sprintf("%s/event-types/%s", defaultNakadiURL, eventType.Name)
 
@@ -210,12 +206,11 @@ func TestEventAPI_Update(t *testing.T) {
 	})
 
 	t.Run("fail with problem", func(t *testing.T) {
-		problem := `{"detail": "not found"}`
-		httpmock.RegisterResponder("PUT", url, httpmock.NewStringResponder(http.StatusNotFound, problem))
+		httpmock.RegisterResponder("PUT", url, httpmock.NewStringResponder(http.StatusNotFound, testProblemJSON))
 
 		err := api.Update(eventType)
 		require.Error(t, err)
-		assert.Regexp(t, "not found", err)
+		assert.Regexp(t, "some problem detail", err)
 	})
 
 	t.Run("fail to read body", func(t *testing.T) {
@@ -272,12 +267,11 @@ func TestEventAPI_Delete(t *testing.T) {
 	})
 
 	t.Run("fail with problem", func(t *testing.T) {
-		problem := `{"detail": "not found"}`
-		httpmock.RegisterResponder("DELETE", url, httpmock.NewStringResponder(http.StatusNotFound, problem))
+		httpmock.RegisterResponder("DELETE", url, httpmock.NewStringResponder(http.StatusNotFound, testProblemJSON))
 
 		err := api.Delete(name)
 		require.Error(t, err)
-		assert.Regexp(t, "not found", err)
+		assert.Regexp(t, "some problem detail", err)
 	})
 
 	t.Run("success", func(t *testing.T) {

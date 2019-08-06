@@ -15,6 +15,8 @@ import (
 
 const (
 	defaultNakadiURL = "http://localhost:8080"
+	testToken        = "token"
+	testProblemJSON  = `{"detail": "some problem detail"}`
 )
 
 func TestNew(t *testing.T) {
@@ -31,7 +33,7 @@ func TestNew(t *testing.T) {
 	})
 
 	t.Run("with token provider", func(t *testing.T) {
-		client := New(defaultNakadiURL, &ClientOptions{TokenProvider: func() (string, error) { return "token", nil }})
+		client := New(defaultNakadiURL, &ClientOptions{TokenProvider: func() (string, error) { return testToken, nil }})
 
 		require.NotNil(t, client)
 		assert.Equal(t, client.nakadiURL, defaultNakadiURL)
@@ -93,7 +95,7 @@ func TestClient_httpGET(t *testing.T) {
 
 	t.Run("fail to read body", func(t *testing.T) {
 		client := setupClient(nil)
-		client.tokenProvider = func() (string, error) { return "token", nil }
+		client.tokenProvider = func() (string, error) { return testToken, nil }
 		responder := httpmock.ResponderFromResponse(&http.Response{
 			Status:     strconv.Itoa(http.StatusBadRequest),
 			StatusCode: http.StatusBadRequest,
@@ -109,7 +111,7 @@ func TestClient_httpGET(t *testing.T) {
 
 	t.Run("success oauth token", func(t *testing.T) {
 		client := setupClient(nil)
-		client.tokenProvider = func() (string, error) { return "token", nil }
+		client.tokenProvider = func() (string, error) { return testToken, nil }
 		httpmock.RegisterResponder("GET", url, func(r *http.Request) (*http.Response, error) {
 			assert.Equal(t, "Bearer token", r.Header.Get("Authorization"))
 			return httpmock.NewStringResponse(http.StatusOK, encoded), nil
@@ -216,7 +218,7 @@ func TestClient_httpPUT(t *testing.T) {
 
 	t.Run("success oauth token", func(t *testing.T) {
 		client := setupClient(nil)
-		client.tokenProvider = func() (string, error) { return "token", nil }
+		client.tokenProvider = func() (string, error) { return testToken, nil }
 		httpmock.RegisterResponder("PUT", url, func(r *http.Request) (*http.Response, error) {
 			assert.Equal(t, "Bearer token", r.Header.Get("Authorization"))
 			return httpmock.NewStringResponse(http.StatusOK, ""), nil
@@ -329,7 +331,7 @@ func TestClient_httpPOST(t *testing.T) {
 
 	t.Run("success oauth token", func(t *testing.T) {
 		client := setupClient(nil)
-		client.tokenProvider = func() (string, error) { return "token", nil }
+		client.tokenProvider = func() (string, error) { return testToken, nil }
 		httpmock.RegisterResponder("POST", url, func(r *http.Request) (*http.Response, error) {
 			assert.Equal(t, "Bearer token", r.Header.Get("Authorization"))
 			return httpmock.NewStringResponse(http.StatusOK, ""), nil
@@ -433,7 +435,7 @@ func TestClient_httpDELETE(t *testing.T) {
 
 	t.Run("success oauth token", func(t *testing.T) {
 		client := setupClient(nil)
-		client.tokenProvider = func() (string, error) { return "token", nil }
+		client.tokenProvider = func() (string, error) { return testToken, nil }
 		httpmock.RegisterResponder("DELETE", url, func(r *http.Request) (*http.Response, error) {
 			require.Equal(t, "Bearer token", r.Header.Get("Authorization"))
 			return httpmock.NewStringResponse(http.StatusOK, ""), nil
@@ -446,7 +448,7 @@ func TestClient_httpDELETE(t *testing.T) {
 
 	t.Run("fail to read body", func(t *testing.T) {
 		client := setupClient(nil)
-		client.tokenProvider = func() (string, error) { return "token", nil }
+		client.tokenProvider = func() (string, error) { return testToken, nil }
 		responder := httpmock.ResponderFromResponse(&http.Response{
 			Status:     strconv.Itoa(http.StatusBadRequest),
 			StatusCode: http.StatusBadRequest,

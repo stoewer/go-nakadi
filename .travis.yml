@@ -34,8 +34,7 @@ before_install:
 
 install:
 - git clone https://github.com/zalando/nakadi.git nakadi
-- GO111MODULE=off go get github.com/alecthomas/gometalinter
-- GO111MODULE=off gometalinter --install --force
+- go get -u github.com/golangci/golangci-lint/cmd/golangci-lint
 - go get github.com/mattn/goveralls
 
 before_script:
@@ -44,7 +43,7 @@ before_script:
 
 script:
 - go mod vendor -v
-- GO111MODULE=off gometalinter --config=.gometalinter.json --deadline=10m .
+- golangci-lint run --config .golangci.yml ./...
 - go test -mod=readonly -v -tags=integration -coverprofile=profile.cov ./...
 
 after_script:
