@@ -157,7 +157,6 @@ func TestIntegrationSubscriptionAPI_GetStats(t *testing.T) {
 	assert.Equal(t, subscription.EventTypes[0], stats[0].EventType)
 
 	actual, _ := json.Marshal(stats)
-	t.Log(string(actual))
 	assert.JSONEq(t, string(expected), string(actual))
 }
 

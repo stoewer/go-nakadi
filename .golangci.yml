@@ -1,0 +1,16 @@
+linters:
+  enable:
+  - goconst
+  - gocyclo
+  - gosec
+  - interfacer
+  - maligned
+  - stylecheck
+  - unconvert
+  disable:
+  - errcheck
+  fast: false
+
+linters-settings:
+  goconst:
+    min-occurrences: 4

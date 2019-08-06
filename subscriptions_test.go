@@ -53,12 +53,11 @@ func TestSubscriptionAPI_Get(t *testing.T) {
 	})
 
 	t.Run("fail with problem", func(t *testing.T) {
-		problem := `{"detail": "not found"}`
-		httpmock.RegisterResponder("GET", url, httpmock.NewStringResponder(http.StatusNotFound, problem))
+		httpmock.RegisterResponder("GET", url, httpmock.NewStringResponder(http.StatusNotFound, testProblemJSON))
 
 		_, err := api.Get(expected.ID)
 		require.Error(t, err)
-		assert.Regexp(t, "not found", err)
+		assert.Regexp(t, "some problem detail", err)
 	})
 
 	t.Run("fail decode response", func(t *testing.T) {
@@ -108,12 +107,11 @@ func TestSubscriptionAPI_List(t *testing.T) {
 	})
 
 	t.Run("fail with problem", func(t *testing.T) {
-		problem := `{"detail": "not found"}`
-		httpmock.RegisterResponder("GET", url, httpmock.NewStringResponder(http.StatusInternalServerError, problem))
+		httpmock.RegisterResponder("GET", url, httpmock.NewStringResponder(http.StatusInternalServerError, testProblemJSON))
 
 		_, err := api.List()
 		require.Error(t, err)
-		assert.Regexp(t, "not found", err)
+		assert.Regexp(t, "some problem detail", err)
 	})
 
 	t.Run("fail decode response", func(t *testing.T) {
@@ -162,12 +160,11 @@ func TestSubscriptionAPI_Create(t *testing.T) {
 	})
 
 	t.Run("fail with problem", func(t *testing.T) {
-		problem := `{"detail": "not authorized"}`
-		httpmock.RegisterResponder("POST", url, httpmock.NewStringResponder(http.StatusUnauthorized, problem))
+		httpmock.RegisterResponder("POST", url, httpmock.NewStringResponder(http.StatusUnauthorized, testProblemJSON))
 
 		_, err := api.Create(subscription)
 		require.Error(t, err)
-		assert.Regexp(t, "not authorized", err)
+		assert.Regexp(t, "some problem detail", err)
 	})
 
 	t.Run("fail decode body with error", func(t *testing.T) {

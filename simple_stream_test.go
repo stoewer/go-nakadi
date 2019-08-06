@@ -36,7 +36,7 @@ func TestSimpleStreamOpener_openStream(t *testing.T) {
 			nakadiURL:        defaultNakadiURL,
 			httpClient:       http.DefaultClient,
 			httpStreamClient: http.DefaultClient,
-			tokenProvider:    func() (string, error) { return "token", nil }}
+			tokenProvider:    func() (string, error) { return testToken, nil }}
 		return &simpleStreamOpener{
 			client:         client,
 			subscriptionID: sub.ID}
@@ -193,7 +193,7 @@ func TestSimpleCommitter_commitEvents(t *testing.T) {
 		client := &Client{
 			nakadiURL:     defaultNakadiURL,
 			httpClient:    http.DefaultClient,
-			tokenProvider: func() (string, error) { return "token", nil }}
+			tokenProvider: func() (string, error) { return testToken, nil }}
 		return &simpleCommitter{
 			client:         client,
 			subscriptionID: id}
