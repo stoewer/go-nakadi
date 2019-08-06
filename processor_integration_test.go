@@ -17,7 +17,11 @@ func TestIntegrationProcessor(t *testing.T) {
 	eventType := &EventType{}
 	helperLoadTestData(t, "event-type-create.json", eventType)
 
-	newSub := &Subscription{OwningApplication: "test-app", EventTypes: []string{eventType.Name}, ReadFrom: "begin"}
+	auth := &SubscriptionAuthorization{
+		Admins:  []AuthorizationAttribute{{DataType: "service", Value: "test-service"}},
+		Readers: []AuthorizationAttribute{{DataType: "service", Value: "test-service"}},
+	}
+	newSub := &Subscription{OwningApplication: "test-app", EventTypes: []string{eventType.Name}, ReadFrom: "begin", Authorization: auth}
 	subscription := helperCreateSubscriptions(t, eventType, newSub)[0]
 	defer helperDeleteSubscriptions(t, eventType, subscription)
 

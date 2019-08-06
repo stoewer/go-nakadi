@@ -10,14 +10,27 @@ import (
 	"github.com/pkg/errors"
 )
 
+// AuthorizationAttribute represents a record for SubscriptionAuthorization which is used by the Nakadi high level API.
+type AuthorizationAttribute struct {
+	DataType string `json:"data_type"`
+	Value    string `json:"value"`
+}
+
+// SubscriptionAuthorization represents a subscription auth as used by the Nakadi high level API.
+type SubscriptionAuthorization struct {
+	Admins  []AuthorizationAttribute `json:"admins"`
+	Readers []AuthorizationAttribute `json:"readers"`
+}
+
 // Subscription represents a subscription as used by the Nakadi high level API.
 type Subscription struct {
-	ID                string    `json:"id,omitempty"`
-	OwningApplication string    `json:"owning_application"`
-	EventTypes        []string  `json:"event_types"`
-	ConsumerGroup     string    `json:"consumer_group,omitempty"`
-	ReadFrom          string    `json:"read_from,omitempty"`
-	CreatedAt         time.Time `json:"created_at,omitempty"`
+	ID                string                     `json:"id,omitempty"`
+	OwningApplication string                     `json:"owning_application"`
+	EventTypes        []string                   `json:"event_types"`
+	ConsumerGroup     string                     `json:"consumer_group,omitempty"`
+	ReadFrom          string                     `json:"read_from,omitempty"`
+	CreatedAt         time.Time                  `json:"created_at,omitempty"`
+	Authorization     *SubscriptionAuthorization `json:"authorization,omitempty"`
 }
 
 // SubscriptionOptions is a set of optional parameters used to configure the SubscriptionAPI.

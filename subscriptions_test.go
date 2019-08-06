@@ -17,6 +17,7 @@ import (
 func TestSubscription_Marshal(t *testing.T) {
 	subscription := &Subscription{}
 	expected := helperLoadTestData(t, "subscription.json", subscription)
+	fmt.Println(subscription)
 
 	serialized, err := json.Marshal(subscription)
 	require.NoError(t, err)
@@ -136,7 +137,13 @@ func TestSubscriptionAPI_Create(t *testing.T) {
 	httpmock.Activate()
 	defer httpmock.DeactivateAndReset()
 
-	subscription := &Subscription{OwningApplication: "test-app", EventTypes: []string{"test-event.data"}}
+	auth := &SubscriptionAuthorization{
+		Admins:  []AuthorizationAttribute{{DataType: "service", Value: "test-service"}},
+		Readers: []AuthorizationAttribute{{DataType: "service", Value: "test-service"}},
+	}
+
+	subscription := &Subscription{OwningApplication: "test-app", EventTypes: []string{"test-event.data"},
+		Authorization: auth}
 	expected := &Subscription{}
 	serialized := helperLoadTestData(t, "subscription.json", expected)
 

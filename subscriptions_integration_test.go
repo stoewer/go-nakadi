@@ -16,7 +16,14 @@ import (
 func TestIntegrationSubscriptionAPI_Get(t *testing.T) {
 	eventType := &EventType{}
 	helperLoadTestData(t, "event-type-create.json", eventType)
-	subscriptions := helperCreateSubscriptions(t, eventType, &Subscription{OwningApplication: "test-app", EventTypes: []string{eventType.Name}})
+	auth := &SubscriptionAuthorization{
+		Admins:  []AuthorizationAttribute{{DataType: "service", Value: "test-service"}},
+		Readers: []AuthorizationAttribute{{DataType: "service", Value: "test-service"}},
+	}
+
+	subscriptions := helperCreateSubscriptions(t, eventType, &Subscription{OwningApplication: "test-app",
+		EventTypes:    []string{eventType.Name},
+		Authorization: auth})
 	defer helperDeleteSubscriptions(t, eventType, subscriptions...)
 
 	client := New(defaultNakadiURL, &ClientOptions{ConnectionTimeout: time.Second})
@@ -42,9 +49,14 @@ func TestIntegrationSubscriptionAPI_Get(t *testing.T) {
 func TestIntegrationSubscriptionAPI_List(t *testing.T) {
 	eventType := &EventType{}
 	helperLoadTestData(t, "event-type-create.json", eventType)
+	auth := &SubscriptionAuthorization{
+		Admins:  []AuthorizationAttribute{{DataType: "service", Value: "test-service"}},
+		Readers: []AuthorizationAttribute{{DataType: "service", Value: "test-service"}},
+	}
+
 	subscriptions := []*Subscription{
-		{OwningApplication: "test-app", EventTypes: []string{eventType.Name}},
-		{OwningApplication: "test-app2", EventTypes: []string{eventType.Name}}}
+		{OwningApplication: "test-app", EventTypes: []string{eventType.Name}, Authorization: auth},
+		{OwningApplication: "test-app2", EventTypes: []string{eventType.Name}, Authorization: auth}}
 	subscriptions = helperCreateSubscriptions(t, eventType, subscriptions...)
 	defer helperDeleteSubscriptions(t, eventType, subscriptions...)
 
@@ -65,13 +77,22 @@ func TestIntegrationSubscriptionAPI_Create(t *testing.T) {
 	subAPI := NewSubscriptionAPI(client, nil)
 
 	t.Run("fail invalid subscription", func(t *testing.T) {
-		_, err := subAPI.Create(&Subscription{OwningApplication: "test-api"})
+		auth := &SubscriptionAuthorization{
+			Admins:  []AuthorizationAttribute{{DataType: "service", Value: "test-service"}},
+			Readers: []AuthorizationAttribute{{DataType: "service", Value: "test-service"}},
+		}
+		_, err := subAPI.Create(&Subscription{OwningApplication: "test-api", Authorization: auth})
 		require.Error(t, err)
 		assert.Regexp(t, "unable to create subscription", err)
 	})
 
 	t.Run("success", func(t *testing.T) {
-		created, err := subAPI.Create(&Subscription{OwningApplication: "test-app", EventTypes: []string{eventType.Name}})
+		auth := &SubscriptionAuthorization{
+			Admins:  []AuthorizationAttribute{{DataType: "service", Value: "test-service"}},
+			Readers: []AuthorizationAttribute{{DataType: "service", Value: "test-service"}},
+		}
+		created, err := subAPI.Create(&Subscription{OwningApplication: "test-app", EventTypes: []string{eventType.Name},
+			Authorization: auth})
 		require.NoError(t, err)
 		assert.Equal(t, "test-app", created.OwningApplication)
 		assert.Equal(t, []string{eventType.Name}, created.EventTypes)
@@ -82,8 +103,16 @@ func TestIntegrationSubscriptionAPI_Create(t *testing.T) {
 
 func TestIntegrationSubscriptionAPI_Delete(t *testing.T) {
 	eventType := &EventType{}
+
+	auth := &SubscriptionAuthorization{
+		Admins:  []AuthorizationAttribute{{DataType: "service", Value: "test-service"}},
+		Readers: []AuthorizationAttribute{{DataType: "service", Value: "test-service"}},
+	}
+
 	helperLoadTestData(t, "event-type-create.json", eventType)
-	subscriptions := helperCreateSubscriptions(t, eventType, &Subscription{OwningApplication: "test-app", EventTypes: []string{eventType.Name}})
+	subscriptions := helperCreateSubscriptions(t, eventType, &Subscription{OwningApplication: "test-app",
+		EventTypes: []string{eventType.Name}, Authorization: auth,
+	})
 	defer helperDeleteSubscriptions(t, eventType, subscriptions...)
 
 	client := New(defaultNakadiURL, &ClientOptions{ConnectionTimeout: time.Second})
@@ -112,7 +141,12 @@ func TestIntegrationSubscriptionAPI_GetStats(t *testing.T) {
 	client := New(defaultNakadiURL, &ClientOptions{ConnectionTimeout: time.Second})
 	subAPI := NewSubscriptionAPI(client, &SubscriptionOptions{Retry: true})
 
-	subscription := &Subscription{OwningApplication: "test-app-stats", EventTypes: []string{eventType.Name}}
+	auth := &SubscriptionAuthorization{
+		Admins:  []AuthorizationAttribute{{DataType: "service", Value: "test-service"}},
+		Readers: []AuthorizationAttribute{{DataType: "service", Value: "test-service"}},
+	}
+	subscription := &Subscription{OwningApplication: "test-app-stats", EventTypes: []string{eventType.Name},
+		Authorization: auth}
 	subscription, err := subAPI.Create(subscription)
 	require.NoError(t, err)
 	defer subAPI.Delete(subscription.ID)
