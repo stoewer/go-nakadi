@@ -137,7 +137,7 @@ func TestSubscriptionAPI_Create(t *testing.T) {
 	httpmock.Activate()
 	defer httpmock.DeactivateAndReset()
 
-	auth := SubscriptionAuthorization{
+	auth := &SubscriptionAuthorization{
 		Admins:  []AuthorizationAttribute{{DataType: "service", Value: "test-service"}},
 		Readers: []AuthorizationAttribute{{DataType: "service", Value: "test-service"}},
 	}

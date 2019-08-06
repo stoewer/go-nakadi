@@ -34,7 +34,7 @@ func Example_complete() {
 	// create a new subscription API and a new subscription
 
 	subAPI := nakadi.NewSubscriptionAPI(client, &nakadi.SubscriptionOptions{Retry: true})
-	auth := nakadi.SubscriptionAuthorization{
+	auth := &nakadi.SubscriptionAuthorization{
 		Admins:  []nakadi.AuthorizationAttribute{{DataType: "service", Value: "test-service"}},
 		Readers: []nakadi.AuthorizationAttribute{{DataType: "service", Value: "test-service"}},
 	}

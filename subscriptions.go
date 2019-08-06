@@ -24,13 +24,13 @@ type SubscriptionAuthorization struct {
 
 // Subscription represents a subscription as used by the Nakadi high level API.
 type Subscription struct {
-	ID                string                    `json:"id,omitempty"`
-	OwningApplication string                    `json:"owning_application"`
-	EventTypes        []string                  `json:"event_types"`
-	ConsumerGroup     string                    `json:"consumer_group,omitempty"`
-	ReadFrom          string                    `json:"read_from,omitempty"`
-	CreatedAt         time.Time                 `json:"created_at,omitempty"`
-	Authorization     SubscriptionAuthorization `json:"authorization"`
+	ID                string                     `json:"id,omitempty"`
+	OwningApplication string                     `json:"owning_application"`
+	EventTypes        []string                   `json:"event_types"`
+	ConsumerGroup     string                     `json:"consumer_group,omitempty"`
+	ReadFrom          string                     `json:"read_from,omitempty"`
+	CreatedAt         time.Time                  `json:"created_at,omitempty"`
+	Authorization     *SubscriptionAuthorization `json:"authorization,omitempty"`
 }
 
 // SubscriptionOptions is a set of optional parameters used to configure the SubscriptionAPI.

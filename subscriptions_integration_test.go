@@ -16,7 +16,7 @@ import (
 func TestIntegrationSubscriptionAPI_Get(t *testing.T) {
 	eventType := &EventType{}
 	helperLoadTestData(t, "event-type-create.json", eventType)
-	auth := SubscriptionAuthorization{
+	auth := &SubscriptionAuthorization{
 		Admins:  []AuthorizationAttribute{{DataType: "service", Value: "test-service"}},
 		Readers: []AuthorizationAttribute{{DataType: "service", Value: "test-service"}},
 	}
@@ -49,7 +49,7 @@ func TestIntegrationSubscriptionAPI_Get(t *testing.T) {
 func TestIntegrationSubscriptionAPI_List(t *testing.T) {
 	eventType := &EventType{}
 	helperLoadTestData(t, "event-type-create.json", eventType)
-	auth := SubscriptionAuthorization{
+	auth := &SubscriptionAuthorization{
 		Admins:  []AuthorizationAttribute{{DataType: "service", Value: "test-service"}},
 		Readers: []AuthorizationAttribute{{DataType: "service", Value: "test-service"}},
 	}
@@ -77,7 +77,7 @@ func TestIntegrationSubscriptionAPI_Create(t *testing.T) {
 	subAPI := NewSubscriptionAPI(client, nil)
 
 	t.Run("fail invalid subscription", func(t *testing.T) {
-		auth := SubscriptionAuthorization{
+		auth := &SubscriptionAuthorization{
 			Admins:  []AuthorizationAttribute{{DataType: "service", Value: "test-service"}},
 			Readers: []AuthorizationAttribute{{DataType: "service", Value: "test-service"}},
 		}
@@ -87,7 +87,7 @@ func TestIntegrationSubscriptionAPI_Create(t *testing.T) {
 	})
 
 	t.Run("success", func(t *testing.T) {
-		auth := SubscriptionAuthorization{
+		auth := &SubscriptionAuthorization{
 			Admins:  []AuthorizationAttribute{{DataType: "service", Value: "test-service"}},
 			Readers: []AuthorizationAttribute{{DataType: "service", Value: "test-service"}},
 		}
@@ -104,7 +104,7 @@ func TestIntegrationSubscriptionAPI_Create(t *testing.T) {
 func TestIntegrationSubscriptionAPI_Delete(t *testing.T) {
 	eventType := &EventType{}
 
-	auth := SubscriptionAuthorization{
+	auth := &SubscriptionAuthorization{
 		Admins:  []AuthorizationAttribute{{DataType: "service", Value: "test-service"}},
 		Readers: []AuthorizationAttribute{{DataType: "service", Value: "test-service"}},
 	}
@@ -141,7 +141,7 @@ func TestIntegrationSubscriptionAPI_GetStats(t *testing.T) {
 	client := New(defaultNakadiURL, &ClientOptions{ConnectionTimeout: time.Second})
 	subAPI := NewSubscriptionAPI(client, &SubscriptionOptions{Retry: true})
 
-	auth := SubscriptionAuthorization{
+	auth := &SubscriptionAuthorization{
 		Admins:  []AuthorizationAttribute{{DataType: "service", Value: "test-service"}},
 		Readers: []AuthorizationAttribute{{DataType: "service", Value: "test-service"}},
 	}
