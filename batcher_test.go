@@ -152,7 +152,7 @@ func TestPublishingBatcher_Publish(t *testing.T) {
 		finish := make(chan bool, 2)
 		for i := 0; i < 2; i++ {
 			go func(idx int) {
-				err := batcher.Publish([]interface{}{fmt.Sprintf("Some data %v", i)})
+				err := batcher.Publish([]interface{}{fmt.Sprintf("Some data %v", idx)})
 				assert.NoError(t, err)
 				finish <- true
 			}(i)

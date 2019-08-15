@@ -91,11 +91,11 @@ func (p *PublishingBatcher) dispatchThread() {
 			finishBatchCollectionAt = &finishAt
 		} else {
 			flush := false
-			if len(batch) >= p.MaxBatchSize {
+			if len(batch) >= p.MaxBatchSize || time.Now().After(*finishBatchCollectionAt) {
 				flush = true
 			} else {
 				select {
-				case <-time.After(finishBatchCollectionAt.Sub(time.Now())):
+				case <-time.After(time.Until(*finishBatchCollectionAt)):
 					flush = true
 					break
 				case evt, ok := <-p.EventsChannel:
