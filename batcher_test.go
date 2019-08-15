@@ -3,6 +3,7 @@ package nakadi
 import (
 	"fmt"
 	"github.com/stretchr/testify/assert"
+	"reflect"
 	"testing"
 	"time"
 )
@@ -13,12 +14,10 @@ type mockPublishApi struct {
 }
 
 func (mock *mockPublishApi) Publish(events interface{}) error {
-	switch events.(type) {
-	case []interface{}:
-		mock.requests = append(mock.requests, events.([]interface{}))
-	default:
+	if reflect.TypeOf(events).Kind() != reflect.Slice {
 		panic("only slices are expected")
 	}
+	mock.requests = append(mock.requests, events.([]interface{}))
 	resp := mock.responses[0]
 	mock.responses = mock.responses[1:]
 	return resp
@@ -70,6 +69,9 @@ func TestPublishingBatcher_Publish(t *testing.T) {
 
 		finish := make(chan bool, 2*maxBatchSize)
 		for i := 0; i < 2*maxBatchSize; i++ {
+			if i != 0 {
+				time.Sleep(50 * time.Millisecond)
+			}
 			go func(idx int) {
 				err := batcher.Publish("Some data")
 				if idx < maxBatchSize {
@@ -79,7 +81,6 @@ func TestPublishingBatcher_Publish(t *testing.T) {
 				}
 				finish <- true
 			}(i)
-			time.Sleep(time.Millisecond * 100)
 		}
 		for i := 0; i < maxBatchSize*2; i++ {
 			<-finish
@@ -124,16 +125,45 @@ func TestPublishingBatcher_Publish(t *testing.T) {
 
 		finish := make(chan bool, 2)
 		for i := 0; i < 2; i++ {
+			if i != 0 {
+				time.Sleep(50 * time.Millisecond)
+			}
 			go func(idx int) {
-				err := batcher.Publish(fmt.Sprintf("Some data %v", i))
+				err := batcher.Publish(fmt.Sprintf("Some data %v", idx))
 				assert.NoError(t, err)
 				finish <- true
 			}(i)
-			time.Sleep(100 * time.Millisecond)
 		}
+		for i := 0; i < 2; i++ {
+			<-finish
+		}
+
 		assert.Equal(t, 1, len(mockApi.requests))
 		assert.Equal(t, 2, len(mockApi.requests[0]))
 		assert.Equal(t, "Some data 0", mockApi.requests[0][0])
 		assert.Equal(t, "Some data 1", mockApi.requests[0][1])
+	})
+
+	t.Run("Test that slices publishing is propagated without waiting", func(t *testing.T) {
+		mockApi := newMockPublishApi([]error{nil, nil})
+		batcher := NewPublishingBatcher(mockApi, time.Second, 2)
+		defer batcher.Close()
+
+		finish := make(chan bool, 2)
+		for i := 0; i < 2; i++ {
+			go func(idx int) {
+				err := batcher.Publish([]interface{}{fmt.Sprintf("Some data %v", i)})
+				assert.NoError(t, err)
+				finish <- true
+			}(i)
+		}
+		for i := 0; i < 2; i++ {
+			<-finish
+		}
+
+		assert.Equal(t, 2, len(mockApi.requests))
+		assert.Equal(t, 1, len(mockApi.requests[0]))
+		assert.Equal(t, 1, len(mockApi.requests[1]))
+
 	})
 }
