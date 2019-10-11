@@ -46,7 +46,7 @@ type DataChangeEvent struct {
 	DataType string        `json:"data_type"`
 }
 
-// PublishOptions is a set of optional parameters used to configure the PublishAPI.
+// PublishOptions is a set of optional parameters used to configure the publishAPI.
 type PublishOptions struct {
 	// Whether or not publish methods retry when publishing fails. If set to true
 	// InitialRetryInterval, MaxRetryInterval, and MaxElapsedTime have no effect
@@ -81,7 +81,7 @@ func (o *PublishOptions) withDefaults() *PublishOptions {
 	return &copyOptions
 }
 
-// NewPublishAPI creates a new instance of the PublishAPI which can be used to publish
+// NewPublishAPI creates a new instance of the publishAPI which can be used to publish
 // Nakadi events. As for all sub APIs of the `go-nakadi` package NewPublishAPI receives a
 // configured Nakadi client. Furthermore the name of the event type must be provided.
 // The last parameter is a struct containing only optional parameters. The options may be
@@ -99,7 +99,7 @@ func NewPublishAPI(client *Client, eventType string, options *PublishOptions) *P
 			MaxElapsedTime:       options.MaxElapsedTime}}
 }
 
-// PublishAPI is a sub API for publishing Nakadi events. All publish methods emit events as a single batch. If
+// publishAPI is a sub API for publishing Nakadi events. All publish methods emit events as a single batch. If
 // a publish method returns an error, the caller should check whether the error is a BatchItemsError in order to
 // verify which events of a batch have been published.
 type PublishAPI struct {
@@ -109,13 +109,13 @@ type PublishAPI struct {
 }
 
 // PublishDataChangeEvent emits a batch of data change events. Depending on the options used when creating
-// the PublishAPI this method will retry to publish the events if the were not successfully published.
+// the publishAPI this method will retry to publish the events if the were not successfully published.
 func (p *PublishAPI) PublishDataChangeEvent(events []DataChangeEvent) error {
 	return p.Publish(events)
 }
 
 // PublishBusinessEvent emits a batch of business events. Depending on the options used when creating
-// the PublishAPI this method will retry to publish the events if the were not successfully published.
+// the publishAPI this method will retry to publish the events if the were not successfully published.
 //
 // Deprecated: use Publish with a custom struct with embedded UndefinedEvent instead.
 func (p *PublishAPI) PublishBusinessEvent(events []BusinessEvent) error {
@@ -123,7 +123,7 @@ func (p *PublishAPI) PublishBusinessEvent(events []BusinessEvent) error {
 }
 
 // Publish is used to emit a batch of undefined events. But can also be used to publish data change or
-// business events. Depending on the options used when creating the PublishAPI this method will retry
+// business events. Depending on the options used when creating the publishAPI this method will retry
 // to publish the events if the were not successfully published.
 func (p *PublishAPI) Publish(events interface{}) error {
 	const errMsg = "unable to request event types"
