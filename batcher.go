@@ -5,31 +5,37 @@ import (
 	"time"
 )
 
-// IPublishAPI defines interface that is used for publishing. Used mostly because of unit tests
-type IPublishAPI interface {
+// publishAPI defines interface that is used for publishing. Used because of unit tests
+type publishAPI interface {
 	Publish(events interface{}) error
 }
 
-// PublishingBatcher is a proxy that allows publishing events in a batched manner. In case if events are published in
+// BatchPublisher is a proxy that allows publishing events in a batched manner. In case if events are published in
 // parallel (not in a form of slices, but in a form of events), then batcher will collect them into batches, respecting
 // batch collection timeout and max batch size and instead of creating many separate requests to nakadi it will create
 // only several of them with aggregated data.
-type PublishingBatcher struct {
-	PublishAPI             IPublishAPI
+type BatchPublisher struct {
+	publishAPI       publishAPI
+	options          BatchPublisherOptions
+	eventsChannel    chan *eventToPublish
+	dispatchFinished chan int
+}
+
+// BatchPublisherOptions specifies parameters that should be used to collect events to batches
+type BatchPublisherOptions struct {
+	// Maximum amount of time that event will spend in intermediate queue before being published.
 	BatchCollectionTimeout time.Duration
-	MaxBatchSize           int
-	EventsChannel          chan *eventToPublish
-	DispatchFinished       chan int
+	// Maximum batch size - it is guaranteed that not more than MaxBatchSize events will be sent within one batch
+	MaxBatchSize int
 }
 
 // NewPublishingBatcher creates a proxy for batching based on api and batching parameters
-func NewPublishingBatcher(api IPublishAPI, batchCollectionTimeout time.Duration, maxBatchSize int) *PublishingBatcher {
-	result := PublishingBatcher{
-		PublishAPI:             api,
-		BatchCollectionTimeout: batchCollectionTimeout,
-		MaxBatchSize:           maxBatchSize,
-		EventsChannel:          make(chan *eventToPublish, 1000),
-		DispatchFinished:       make(chan int),
+func NewPublishingBatcher(api *PublishAPI, options BatchPublisherOptions) *BatchPublisher {
+	result := BatchPublisher{
+		publishAPI:       api,
+		options:          options,
+		eventsChannel:    make(chan *eventToPublish, 1000),
+		dispatchFinished: make(chan int),
 	}
 	go result.dispatchThread()
 	return &result
@@ -37,9 +43,9 @@ func NewPublishingBatcher(api IPublishAPI, batchCollectionTimeout time.Duration,
 
 // Publish will publish requested data through PublishApi. In case if it is a single event (not a slice), it will be
 // added to a batch and published as a part of a batch.
-func (p *PublishingBatcher) Publish(event interface{}) error {
+func (p *BatchPublisher) Publish(event interface{}) error {
 	if reflect.TypeOf(event).Kind() == reflect.Slice {
-		return p.PublishAPI.Publish(event)
+		return p.publishAPI.Publish(event)
 	}
 	eventProxy := eventToPublish{
 		requestedAt:   time.Now(),
@@ -48,7 +54,7 @@ func (p *PublishingBatcher) Publish(event interface{}) error {
 	}
 	defer close(eventProxy.publishResult)
 
-	p.EventsChannel <- &eventProxy
+	p.eventsChannel <- &eventProxy
 	return <-eventProxy.publishResult
 }
 
@@ -59,46 +65,46 @@ type eventToPublish struct {
 }
 
 // Close stops batching goroutine and waits for it to confirm stop process
-func (p *PublishingBatcher) Close() {
-	close(p.EventsChannel)
-	<-p.DispatchFinished
-	close(p.DispatchFinished)
+func (p *BatchPublisher) Close() {
+	close(p.eventsChannel)
+	<-p.dispatchFinished
+	close(p.dispatchFinished)
 }
 
-func (p *PublishingBatcher) publishBatchToNakadi(events []*eventToPublish) {
+func (p *BatchPublisher) publishBatchToNakadi(events []*eventToPublish) {
 	itemsToPublish := make([]interface{}, len(events))
 	for idx, evt := range events {
 		itemsToPublish[idx] = evt.event
 	}
-	err := p.PublishAPI.Publish(itemsToPublish)
+	err := p.publishAPI.Publish(itemsToPublish)
 	for _, evt := range events {
 		evt.publishResult <- err
 	}
 }
 
-func (p *PublishingBatcher) dispatchThread() {
-	defer func() { p.DispatchFinished <- 1 }()
+func (p *BatchPublisher) dispatchThread() {
+	defer func() { p.dispatchFinished <- 1 }()
 	batch := make([]*eventToPublish, 0, 1)
 	var finishBatchCollectionAt *time.Time
 	for {
 		if finishBatchCollectionAt == nil {
-			event, ok := <-p.EventsChannel
+			event, ok := <-p.eventsChannel
 			if !ok {
 				break
 			}
 			batch = append(batch, event)
-			finishAt := event.requestedAt.Add(p.BatchCollectionTimeout)
+			finishAt := event.requestedAt.Add(p.options.BatchCollectionTimeout)
 			finishBatchCollectionAt = &finishAt
 		} else {
 			flush := false
-			if len(batch) >= p.MaxBatchSize || time.Now().After(*finishBatchCollectionAt) {
+			if len(batch) >= p.options.MaxBatchSize || time.Now().After(*finishBatchCollectionAt) {
 				flush = true
 			} else {
 				select {
 				case <-time.After(time.Until(*finishBatchCollectionAt)):
 					flush = true
 					break
-				case evt, ok := <-p.EventsChannel:
+				case evt, ok := <-p.eventsChannel:
 					if !ok {
 						flush = true
 					} else {

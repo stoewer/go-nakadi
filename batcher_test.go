@@ -2,168 +2,184 @@ package nakadi
 
 import (
 	"fmt"
+
 	"github.com/stretchr/testify/assert"
-	"reflect"
+	"github.com/stretchr/testify/mock"
+
 	"testing"
 	"time"
 )
 
-type mockPublishApi struct {
-	responses []error
-	requests  [][]interface{}
-}
-
-func (mock *mockPublishApi) Publish(events interface{}) error {
-	if reflect.TypeOf(events).Kind() != reflect.Slice {
-		panic("only slices are expected")
-	}
-	mock.requests = append(mock.requests, events.([]interface{}))
-	resp := mock.responses[0]
-	mock.responses = mock.responses[1:]
-	return resp
-}
-
-func newMockPublishApi(responses []error) *mockPublishApi {
-	return &mockPublishApi{
-		responses: responses,
-		requests:  make([][]interface{}, 0),
-	}
-}
-
 // Check that publishing batcher is getting closed after usage
-func TestPublishingBatcher_Close(t *testing.T) {
+func TestBatchPublisher_Close(t *testing.T) {
 	t.Run("Test closing", func(t *testing.T) {
-		batcher := NewPublishingBatcher(nil, time.Second, 100)
+		batcher := NewPublishingBatcher(nil, BatchPublisherOptions{})
 		batcher.Close()
 	})
 }
 
-func TestPublishingBatcher_Publish(t *testing.T) {
+func TestBatchPublisher_Publish(t *testing.T) {
 	t.Run("Test that batching by max batch size is working", func(t *testing.T) {
 		const maxBatchSize = 4
-		mockApi := newMockPublishApi([]error{nil, nil})
-		batcher := NewPublishingBatcher(mockApi, 24*time.Hour, maxBatchSize)
+		batcher, mockAPI := setupTestBatchPublisher(24*time.Hour, maxBatchSize)
 		defer batcher.Close()
 
+		dataToPublish := make(map[string]struct{})
+		for index := 0; index < maxBatchSize*2; index++ {
+			dataToPublish[fmt.Sprintf("Some data %d", index)] = struct{}{}
+		}
+		mockAPI.On("Publish", mock.Anything).Twice().Return(nil)
+
 		finish := make(chan bool, 2*maxBatchSize)
-		for i := 0; i < 2*maxBatchSize; i++ {
-			go func() {
-				err := batcher.Publish("some data")
+		for item := range dataToPublish {
+			go func(itemToPublish string) {
+				err := batcher.Publish(itemToPublish)
 				assert.NoError(t, err)
 				finish <- true
-			}()
+			}(item)
 		}
-		for i := 0; i < maxBatchSize*2; i++ {
+		for i := 0; i < len(dataToPublish); i++ {
 			<-finish
 		}
 
-		assert.Equal(t, 2, len(mockApi.requests))
-		assert.Equal(t, maxBatchSize, len(mockApi.requests[0]))
-		assert.Equal(t, maxBatchSize, len(mockApi.requests[1]))
+		mockAPI.AssertNumberOfCalls(t, "Publish", 2)
+		assert.Equal(t, dataToPublish, mockAPI.dataPublished)
+		assert.Equal(t, []int{maxBatchSize, maxBatchSize}, mockAPI.batchSizes)
 	})
 	t.Run("Test that error is propagated to calling functions", func(t *testing.T) {
 		const maxBatchSize = 4
-		mockApi := newMockPublishApi([]error{fmt.Errorf("YAYA"), nil})
-		batcher := NewPublishingBatcher(mockApi, 24*time.Hour, maxBatchSize)
+
+		batcher, mockAPI := setupTestBatchPublisher(24*time.Hour, maxBatchSize)
 		defer batcher.Close()
 
-		finish := make(chan bool, 2*maxBatchSize)
-		for i := 0; i < 2*maxBatchSize; i++ {
-			if i != 0 {
-				time.Sleep(50 * time.Millisecond)
-			}
-			go func(idx int) {
-				err := batcher.Publish("Some data")
-				if idx < maxBatchSize {
-					assert.Error(t, err, "Expect to have error on iteration %v", idx)
-				} else {
-					assert.NoError(t, err, "Expect not no have error on iteration %v", idx)
-				}
-				finish <- true
-			}(i)
-		}
-		for i := 0; i < maxBatchSize*2; i++ {
-			<-finish
+		dataToPublish := make(map[string]struct{}, maxBatchSize*2)
+		for index := 0; index < maxBatchSize*2; index++ {
+			dataToPublish[fmt.Sprintf("Some data %d", index)] = struct{}{}
 		}
 
-		assert.Equal(t, 2, len(mockApi.requests))
-		assert.Equal(t, maxBatchSize, len(mockApi.requests[0]))
-		assert.Equal(t, maxBatchSize, len(mockApi.requests[1]))
+		mockAPI.On("Publish", mock.Anything).Once().Return(assert.AnError)
+		mockAPI.On("Publish", mock.Anything).Once().Return(nil)
+		errored := make(chan string, maxBatchSize*2)
+		succeeded := make(chan string, maxBatchSize*2)
+		for item := range dataToPublish {
+			go func(itemToPublish string) {
+				err := batcher.Publish(itemToPublish)
+				if err != nil {
+					errored <- itemToPublish
+				} else {
+					succeeded <- itemToPublish
+				}
+			}(item)
+		}
+		dataDiscarded := make(map[string]struct{})
+		dataPublished := make(map[string]struct{})
+		for i := 0; i < maxBatchSize; i++ {
+			dataDiscarded[<-errored] = struct{}{}
+			dataPublished[<-succeeded] = struct{}{}
+		}
+
+		mockAPI.AssertNumberOfCalls(t, "Publish", 2)
+		assert.Equal(t, dataDiscarded, mockAPI.dataDiscarded)
+		assert.Equal(t, dataPublished, mockAPI.dataPublished)
 	})
 
 	t.Run("Test that batching by time works", func(t *testing.T) {
 		const maxBatchSize = 4
 		const aggregationPeriod = time.Millisecond * 100
-		mockApi := newMockPublishApi([]error{nil, nil, nil})
-		batcher := NewPublishingBatcher(mockApi, aggregationPeriod, maxBatchSize)
+		batcher, mockAPI := setupTestBatchPublisher(aggregationPeriod, maxBatchSize)
 		defer batcher.Close()
+
+		dataToPublish := make(map[string]struct{}, maxBatchSize*2)
+		for i := 0; i < maxBatchSize*2; i++ {
+			dataToPublish[fmt.Sprintf("Some data %d", i)] = struct{}{}
+		}
+
+		mockAPI.On("Publish", mock.Anything).Times(3).Return(nil)
 
 		finish := make(chan bool, 2*maxBatchSize)
-		for i := 0; i < maxBatchSize*2; i++ {
-			go func(idx int) {
-				err := batcher.Publish("Some data")
+		counter := 0
+		for item := range dataToPublish {
+			go func(itemToPublish string) {
+				err := batcher.Publish(itemToPublish)
 				assert.NoError(t, err)
 				finish <- true
-			}(i)
-			if i == (maxBatchSize - 2) {
+			}(item)
+			if counter == (maxBatchSize - 2) {
 				time.Sleep(aggregationPeriod + time.Millisecond*100)
 			}
+			counter += 1
 		}
 		for i := 0; i < maxBatchSize*2; i++ {
 			<-finish
 		}
-		assert.Equal(t, 3, len(mockApi.requests))
-		assert.Equal(t, maxBatchSize-1, len(mockApi.requests[0]))
-		assert.Equal(t, maxBatchSize, len(mockApi.requests[1]))
-		assert.Equal(t, 1, len(mockApi.requests[2]))
-	})
-
-	t.Run("Test that actual data is passed to publish api", func(t *testing.T) {
-		mockApi := newMockPublishApi([]error{nil, nil, nil})
-		batcher := NewPublishingBatcher(mockApi, time.Hour, 2)
-		defer batcher.Close()
-
-		finish := make(chan bool, 2)
-		for i := 0; i < 2; i++ {
-			if i != 0 {
-				time.Sleep(50 * time.Millisecond)
-			}
-			go func(idx int) {
-				err := batcher.Publish(fmt.Sprintf("Some data %v", idx))
-				assert.NoError(t, err)
-				finish <- true
-			}(i)
-		}
-		for i := 0; i < 2; i++ {
-			<-finish
-		}
-
-		assert.Equal(t, 1, len(mockApi.requests))
-		assert.Equal(t, 2, len(mockApi.requests[0]))
-		assert.Equal(t, "Some data 0", mockApi.requests[0][0])
-		assert.Equal(t, "Some data 1", mockApi.requests[0][1])
+		mockAPI.AssertNumberOfCalls(t, "Publish", 3)
+		assert.Equal(t, []int{maxBatchSize - 1, maxBatchSize, 1}, mockAPI.batchSizes)
 	})
 
 	t.Run("Test that slices publishing is propagated without waiting", func(t *testing.T) {
-		mockApi := newMockPublishApi([]error{nil, nil})
-		batcher := NewPublishingBatcher(mockApi, time.Second, 2)
-		defer batcher.Close()
-
-		finish := make(chan bool, 2)
-		for i := 0; i < 2; i++ {
-			go func(idx int) {
-				err := batcher.Publish([]interface{}{fmt.Sprintf("Some data %v", idx)})
-				assert.NoError(t, err)
-				finish <- true
-			}(i)
+		batcher, mockAPI := setupTestBatchPublisher(time.Hour*24, 2)
+		itemsToPublish := [][]string{
+			{fmt.Sprintf("batch one")},
+			{fmt.Sprintf("batch two")},
 		}
-		for i := 0; i < 2; i++ {
-			<-finish
+		mockAPI.On("Publish", itemsToPublish[0]).Once().Return(nil)
+		mockAPI.On("Publish", itemsToPublish[1]).Once().Return(nil)
+
+		for _, items := range itemsToPublish {
+			err := batcher.Publish(items)
+			assert.NoError(t, err)
 		}
 
-		assert.Equal(t, 2, len(mockApi.requests))
-		assert.Equal(t, 1, len(mockApi.requests[0]))
-		assert.Equal(t, 1, len(mockApi.requests[1]))
-
+		mockAPI.AssertNumberOfCalls(t, "Publish", 2)
 	})
+}
+
+type mockPublishAPI struct {
+	mock.Mock
+	batchSizes    []int
+	dataPublished map[string]struct{}
+	dataDiscarded map[string]struct{}
+}
+
+func (m *mockPublishAPI) Publish(events interface{}) error {
+	e := m.Called(events).Get(0)
+
+	autoCollected, ok := events.([]interface{})
+	if !ok {
+		if e == nil {
+			return nil
+		}
+		return e.(error)
+	}
+	m.batchSizes = append(m.batchSizes, len(autoCollected))
+
+	if e == nil {
+		for _, item := range autoCollected {
+			m.dataPublished[item.(string)] = struct{}{}
+		}
+		return nil
+	}
+	for _, item := range autoCollected {
+		m.dataDiscarded[item.(string)] = struct{}{}
+	}
+	return e.(error)
+}
+
+func setupTestBatchPublisher(batchCollectionTimeout time.Duration, maxBatchSize int) (*BatchPublisher, *mockPublishAPI) {
+	api := &mockPublishAPI{
+		batchSizes:    make([]int, 0),
+		dataPublished: make(map[string]struct{}),
+		dataDiscarded: make(map[string]struct{}),
+	}
+	result := BatchPublisher{
+		publishAPI: api,
+		options: BatchPublisherOptions{
+			MaxBatchSize:           maxBatchSize,
+			BatchCollectionTimeout: batchCollectionTimeout,
+		},
+		eventsChannel:    make(chan *eventToPublish, 1000),
+		dispatchFinished: make(chan int),
+	}
+	go result.dispatchThread()
+	return &result, api
 }
