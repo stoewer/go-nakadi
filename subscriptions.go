@@ -5,7 +5,9 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"net/url"
 	"time"
+	"strconv"
 
 	"github.com/pkg/errors"
 )
@@ -89,12 +91,60 @@ type SubscriptionAPI struct {
 	backOffConf backOffConfiguration
 }
 
+type PageParameters struct {
+	Limit int
+	Offset int
+}
+
+type SubscriptionParameters struct {
+	PageParameters
+	OwningApplication string
+	EventType         string
+}
+
+func (p *SubscriptionParameters) EncodeQueryString() string {
+	params := url.Values{}
+
+	if len(p.OwningApplication) > 0 {
+		params.Add("owning_application", p.OwningApplication)
+	}
+	if len(p.EventType) > 0 {
+		params.Add("event_type", p.EventType)
+	}
+	if p.Limit > 0 {
+		params.Add("limit", strconv.Itoa(p.Limit))
+	}
+	if p.Offset > 0 {
+		params.Add("offset", strconv.Itoa(p.Offset))
+	}
+
+	return params.Encode()
+}
+
 // List returns all available subscriptions.
 func (s *SubscriptionAPI) List() ([]*Subscription, error) {
 	subscriptions := struct {
 		Items []*Subscription `json:"items"`
 	}{}
 	err := s.client.httpGET(s.backOffConf.create(), s.subBaseURL(), &subscriptions, "unable to request subscriptions")
+	if err != nil {
+		return nil, err
+	}
+	return subscriptions.Items, nil
+}
+
+// ListFilter returns all subscriptions that consistent with the `SubscriptionParameter`s
+// DEPRECATED: will be replaced in version 2. Use `List()` instead
+func (s *SubscriptionAPI) ListFilter(params SubscriptionParameters) ([]*Subscription, error) {
+	subscriptions := struct {
+		Items []*Subscription `json:"items"`
+	}{}
+	queryString := params.EncodeQueryString()
+	reqUrl := s.subBaseURL()
+	if len(queryString) > 0 {
+		reqUrl = reqUrl + "?" + queryString
+	}
+	err := s.client.httpGET(s.backOffConf.create(), reqUrl, &subscriptions, "unable to request subscriptions")
 	if err != nil {
 		return nil, err
 	}
