@@ -45,7 +45,6 @@ before_script:
 - (cd nakadi && ./gradlew startNakadi)
 
 script:
-- go mod vendor -v
 - golangci-lint run --config .golangci.yml ./...
 - go test -mod=readonly -v -tags=integration -coverprofile=profile.cov ./...
 
