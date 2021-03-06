@@ -23,6 +23,7 @@ type EventMetadata struct {
 	ParentEIDs []string   `json:"parent_eids,omitempty"`
 	FlowID     string     `json:"flow_id,omitempty"`
 	ReceivedAt *time.Time `json:"received_at,omitempty"`
+	SpanCTX    string     `json:"span_ctx,omitempty"`
 }
 
 // UndefinedEvent can be embedded in structs representing Nakadi events from the event category "undefined".

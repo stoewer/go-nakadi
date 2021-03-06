@@ -9,7 +9,8 @@
       "1ffca0a8-7e06-11e7-8fb7-9b5eac2ea83b"
     ],
     "flow_id": "133f79bc-7e06-11e7-83d6-3faf840fe457",
-    "received_at": "2017-08-10T22:01:45.764778397+02:00"
+    "received_at": "2017-08-10T22:01:45.764778397+02:00",
+    "span_ctx": "eyJ0cmFjZV9pZCI6IjEyMyIsInNwYW5faWQiOiIzMjEifQo="
   },
   "order_number": "1234"
 }

@@ -9,7 +9,8 @@
       "a60f8b0c-7e05-11e7-a973-2bb868b18fd5"
     ],
     "flow_id": "1c435b06-7e05-11e7-a394-c3c9d0872fa9",
-    "received_at": "2017-08-10T22:01:45.764718069+02:00"
+    "received_at": "2017-08-10T22:01:45.764718069+02:00",
+    "span_ctx": "eyJ0cmFjZV9pZCI6IjEyMyIsInNwYW5faWQiOiIzMjEifQo="
   },
   "test": "test value"
 }
