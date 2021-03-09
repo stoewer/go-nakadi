@@ -9,7 +9,11 @@
       "4e40ad60-7e06-11e7-928d-fbe0cdb44c30"
     ],
     "flow_id": "4ce0694c-7e06-11e7-a3d4-27030bedd363",
-    "received_at": "2017-08-10T22:01:45.764802255+02:00"
+    "received_at": "2017-08-10T22:01:45.764802255+02:00",
+    "span_ctx": {
+        "ot_tracer_spanid": "123",
+        "ot_tracer_traceid": "321"
+    }
   },
   "data": {
     "test": "test value"
