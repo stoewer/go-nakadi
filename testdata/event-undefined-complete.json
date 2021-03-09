@@ -11,7 +11,7 @@
     "flow_id": "1c435b06-7e05-11e7-a394-c3c9d0872fa9",
     "received_at": "2017-08-10T22:01:45.764718069+02:00",
     "span_ctx": {
-        "ot-tracer-spanid": "123",
+        "ot_tracer_spanid": "123",
         "ot_tracer_traceid": "321"
     }
   },
