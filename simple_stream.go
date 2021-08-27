@@ -12,6 +12,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/buger/jsonparser"
 	"github.com/pkg/errors"
 )
 
@@ -85,47 +86,42 @@ type simpleStream struct {
 	line           bytes.Buffer
 }
 
-func (s *simpleStream) nextEvents() (Cursor, []byte, error) {
-	defer s.line.Reset()
+func (s *simpleStream) nextEvents(buffer bytes.Buffer) (Cursor, []byte, error) {
+	buffer.Reset()
 	if s.buffer == nil {
 		return Cursor{}, nil, errors.New("failed to read next batch: stream is closed")
 	}
 
-	fragment, isPrefix, err := s.readLineTimeout()
+	fragment, err := s.readLineTimeout()
 	if err != nil {
 		return Cursor{}, nil, errors.Wrap(err, "failed to read next batch")
 	}
-	s.line.Write(fragment)
-
-	for isPrefix {
-		var add []byte
-		add, isPrefix, err = s.readLineTimeout()
-		if err != nil {
-			return Cursor{}, nil, errors.Wrap(err, "failed to read next batch")
-		}
-		s.line.Write(add)
-	}
+	buffer.Write(fragment)
 
 	batch := struct {
-		Cursor Cursor           `json:"cursor"`
-		Events *json.RawMessage `json:"events"`
+		Cursor Cursor `json:"cursor"`
 	}{}
-	err = json.Unmarshal(s.line.Bytes(), &batch)
+	batch.Cursor.buffer = buffer
+	err = json.Unmarshal(buffer.Bytes(), &batch)
 	if err != nil {
 		return Cursor{}, nil, errors.Wrap(err, "failed to unmarshal next batch")
 	}
 	batch.Cursor.NakadiStreamID = s.nakadiStreamID
 
-	if batch.Events == nil {
+	events, dataType, _, err := jsonparser.Get(buffer.Bytes(), "events")
+	if err != nil && err != jsonparser.KeyPathNotFoundError {
+		return Cursor{}, nil, errors.Wrap(err, "failed to read events in next batch")
+	}
+	if dataType == jsonparser.NotExist || dataType == jsonparser.Null {
 		return batch.Cursor, nil, nil
 	}
-	return batch.Cursor, []byte(*batch.Events), nil
+	return batch.Cursor, events, nil
 }
 
-func (s *simpleStream) readLineTimeout() ([]byte, bool, error) {
+func (s *simpleStream) readLineTimeout() ([]byte, error) {
 	timer := time.AfterFunc(s.readTimeout, func() { s.closer.Close() })
 	defer timer.Stop()
-	return s.buffer.ReadLine()
+	return s.buffer.ReadSlice('\n')
 }
 
 func (s *simpleStream) closeStream() error {
