@@ -153,11 +153,15 @@ func TestSimpleStream_nextEvents(t *testing.T) {
 		events := helperLoadTestData(t, "data-event-stream.json", nil)
 		stream := setupStream(httpmock.NewStringResponder(200, string(events)))
 
+		var readEventsInAllLines [][]byte
 		for i := 0; i < 5; i++ {
-			cursor, _, err := stream.nextEvents()
+			cursor, readEvents, err := stream.nextEvents()
+			readEventsInAllLines = append(readEventsInAllLines, readEvents)
 			require.NoError(t, err)
 			assert.Equal(t, "stream-id", cursor.NakadiStreamID)
 		}
+		// test that nextEvents don't reuse returned bytes
+		assert.NotEqual(t, readEventsInAllLines[0], readEventsInAllLines[2])
 	})
 }
 

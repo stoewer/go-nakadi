@@ -82,9 +82,11 @@ type simpleStream struct {
 	buffer         *bufio.Reader
 	closer         io.Closer
 	readTimeout    time.Duration
+	line           bytes.Buffer
 }
 
 func (s *simpleStream) nextEvents() (Cursor, []byte, error) {
+	defer s.line.Reset()
 	if s.buffer == nil {
 		return Cursor{}, nil, errors.New("failed to read next batch: stream is closed")
 	}
@@ -93,8 +95,7 @@ func (s *simpleStream) nextEvents() (Cursor, []byte, error) {
 	if err != nil {
 		return Cursor{}, nil, errors.Wrap(err, "failed to read next batch")
 	}
-	line := make([]byte, len(fragment))
-	copy(line, fragment)
+	s.line.Write(fragment)
 
 	for isPrefix {
 		var add []byte
@@ -102,14 +103,14 @@ func (s *simpleStream) nextEvents() (Cursor, []byte, error) {
 		if err != nil {
 			return Cursor{}, nil, errors.Wrap(err, "failed to read next batch")
 		}
-		line = append(line, add...)
+		s.line.Write(add)
 	}
 
 	batch := struct {
 		Cursor Cursor           `json:"cursor"`
 		Events *json.RawMessage `json:"events"`
 	}{}
-	err = json.Unmarshal(line, &batch)
+	err = json.Unmarshal(s.line.Bytes(), &batch)
 	if err != nil {
 		return Cursor{}, nil, errors.Wrap(err, "failed to unmarshal next batch")
 	}
