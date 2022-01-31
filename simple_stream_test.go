@@ -2,6 +2,7 @@ package nakadi
 
 import (
 	"bufio"
+	"bytes"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -128,7 +129,7 @@ func TestSimpleStream_nextEvents(t *testing.T) {
 		stream := setupStream(httpmock.NewStringResponder(200, ""))
 		stream.buffer = nil
 
-		_, _, err := stream.nextEvents()
+		_, _, err := stream.nextEvents(bytes.Buffer{})
 		require.Error(t, err)
 		assert.Regexp(t, "stream is closed", err.Error())
 	})
@@ -136,7 +137,7 @@ func TestSimpleStream_nextEvents(t *testing.T) {
 	t.Run("fail EOF", func(t *testing.T) {
 		stream := setupStream(httpmock.NewStringResponder(200, ""))
 
-		_, _, err := stream.nextEvents()
+		_, _, err := stream.nextEvents(bytes.Buffer{})
 		require.Error(t, err)
 		assert.Regexp(t, "EOF", err.Error())
 	})
@@ -144,7 +145,7 @@ func TestSimpleStream_nextEvents(t *testing.T) {
 	t.Run("fail unmarshal event", func(t *testing.T) {
 		stream := setupStream(httpmock.NewStringResponder(200, "not\n a\n event\n"))
 
-		_, _, err := stream.nextEvents()
+		_, _, err := stream.nextEvents(bytes.Buffer{})
 		require.Error(t, err)
 		assert.Regexp(t, "failed to unmarshal next batch", err.Error())
 	})
@@ -153,11 +154,15 @@ func TestSimpleStream_nextEvents(t *testing.T) {
 		events := helperLoadTestData(t, "data-event-stream.json", nil)
 		stream := setupStream(httpmock.NewStringResponder(200, string(events)))
 
+		var readEventsInAllLines [][]byte
 		for i := 0; i < 5; i++ {
-			cursor, _, err := stream.nextEvents()
+			cursor, readEvents, err := stream.nextEvents(bytes.Buffer{})
+			readEventsInAllLines = append(readEventsInAllLines, readEvents)
 			require.NoError(t, err)
 			assert.Equal(t, "stream-id", cursor.NakadiStreamID)
 		}
+		// test that nextEvents don't reuse returned bytes
+		assert.NotEqual(t, readEventsInAllLines[0], readEventsInAllLines[2])
 	})
 }
 

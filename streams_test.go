@@ -1,6 +1,7 @@
 package nakadi
 
 import (
+	"bytes"
 	"context"
 	"testing"
 	"time"
@@ -25,7 +26,7 @@ func TestStreamAPI_startStreamLoop(t *testing.T) {
 	blockCh <- time.Now()
 	<-okCh
 	streamAPI.cancel()
-	
+
 	<-time.After(time.Second)
 	//Wait for startStream to loop
 	// If startStream tries to open the stream again after streamAPI is closed,
@@ -227,12 +228,14 @@ func setupMockStream(errCh chan error, okCh chan struct{}) (*StreamAPI, *mockStr
 	opener := &mockStreamOpener{}
 	committer := &mockCommitter{}
 
+	const chLen = 10
 	stream := &StreamAPI{
-		opener:    opener,
-		committer: committer,
-		eventCh:   make(chan eventsOrError, 10),
-		ctx:       ctx,
-		cancel:    cancel,
+		opener:      opener,
+		committer:   committer,
+		eventCh:     make(chan eventsOrError, chLen),
+		freeEventCh: make(chan bytes.Buffer, chLen),
+		ctx:         ctx,
+		cancel:      cancel,
 		streamBackOffConf: backOffConfiguration{
 			Retry:                true,
 			InitialRetryInterval: 1 * time.Millisecond,

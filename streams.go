@@ -1,6 +1,7 @@
 package nakadi
 
 import (
+	"bytes"
 	"context"
 	"time"
 
@@ -15,6 +16,7 @@ type Cursor struct {
 	EventType      string `json:"event_type"`
 	CursorToken    string `json:"cursor_token"`
 	NakadiStreamID string `json:"-"`
+	buffer         bytes.Buffer
 }
 
 // StreamOptions contains optional parameters that are used to create a StreamAPI.
@@ -84,6 +86,7 @@ func NewStream(client *Client, subscriptionID string, options *StreamOptions) *S
 
 	ctx, cancel := context.WithCancel(context.Background())
 
+	const chLen = 10
 	streamAPI := &StreamAPI{
 		opener: &simpleStreamOpener{
 			client:               client,
@@ -94,9 +97,10 @@ func NewStream(client *Client, subscriptionID string, options *StreamOptions) *S
 		committer: &simpleCommitter{
 			client:         client,
 			subscriptionID: subscriptionID},
-		eventCh: make(chan eventsOrError, 10),
-		ctx:     ctx,
-		cancel:  cancel,
+		eventCh:     make(chan eventsOrError, chLen),
+		freeEventCh: make(chan bytes.Buffer, chLen),
+		ctx:         ctx,
+		cancel:      cancel,
 		streamBackOffConf: backOffConfiguration{
 			Retry:                true,
 			InitialRetryInterval: options.InitialRetryInterval,
@@ -111,6 +115,10 @@ func NewStream(client *Client, subscriptionID string, options *StreamOptions) *S
 		notifyErr: options.NotifyErr,
 		notifyOK:  options.NotifyOK}
 
+	for i := 0; i < chLen; i++ {
+		streamAPI.freeEventCh <- bytes.Buffer{}
+	}
+
 	go streamAPI.startStream()
 
 	return streamAPI
@@ -123,6 +131,7 @@ type StreamAPI struct {
 	opener            streamOpener
 	committer         committer
 	eventCh           chan eventsOrError
+	freeEventCh       chan bytes.Buffer
 	ctx               context.Context
 	cancel            context.CancelFunc
 	commitBackOffConf backOffConfiguration
@@ -165,6 +174,11 @@ func (s *StreamAPI) Close() error {
 	return nil
 }
 
+// Free returns allocated events bytes for reuse. Read of corresponding events after this call is invalid.
+func (s *StreamAPI) Free(c Cursor) {
+	s.freeEventCh <- c.buffer
+}
+
 // startStream is used to start a background routine which consumes events using a streamOpener and streamer.
 // this routine will never terminate (not even on errors) unless the stream is closed.
 func (s *StreamAPI) startStream() {
@@ -195,10 +209,11 @@ func (s *StreamAPI) startStream() {
 			case <-s.ctx.Done():
 				err = context.Canceled
 			default:
-				cursor, events, err = stream.nextEvents()
+				cursor, events, err = stream.nextEvents(<-s.freeEventCh)
 			}
 
 			if err == nil && len(events) == 0 {
+				s.Free(cursor)
 				continue
 			}
 
@@ -230,7 +245,7 @@ type streamOpener interface {
 
 // streamer is a internally used interface which is used to consume events from a stream.
 type streamer interface {
-	nextEvents() (Cursor, []byte, error)
+	nextEvents(buffer bytes.Buffer) (Cursor, []byte, error)
 	closeStream() error
 }
 

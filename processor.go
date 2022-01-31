@@ -88,6 +88,7 @@ type streamAPI interface {
 	NextEvents() (Cursor, []byte, error)
 	CommitCursor(cursor Cursor) error
 	Close() error
+	Free(Cursor)
 }
 
 // NewProcessor creates a new processor for a given subscription ID.  The constructor receives a
@@ -204,10 +205,12 @@ func (p *Processor) startSingleStream(operation Operation, streamNo int, options
 		default:
 			cursor, events, err := stream.NextEvents()
 			if err != nil {
+				stream.Free(cursor)
 				continue
 			}
 
 			err = operation(streamNo, cursor.NakadiStreamID, events)
+			stream.Free(cursor)
 			if err != nil {
 				options.NotifyErr(err, 0)
 				stream.Close()
