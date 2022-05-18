@@ -22,6 +22,7 @@ import (
 	"time"
 
 	"github.com/cenkalti/backoff/v3"
+	"github.com/opentracing/opentracing-go"
 	"github.com/pkg/errors"
 )
 
@@ -46,6 +47,13 @@ type Client struct {
 type ClientOptions struct {
 	TokenProvider     func() (string, error)
 	ConnectionTimeout time.Duration
+	TracingOptions    TracingOptions
+}
+
+type TracingOptions struct {
+	Tracer        opentracing.Tracer
+	SpanName      string
+	ComponentName string
 }
 
 func (o *ClientOptions) withDefaults() *ClientOptions {
@@ -69,8 +77,8 @@ func New(url string, options *ClientOptions) *Client {
 		nakadiURL:        url,
 		timeout:          options.ConnectionTimeout,
 		tokenProvider:    options.TokenProvider,
-		httpClient:       newHTTPClient(options.ConnectionTimeout),
-		httpStreamClient: newHTTPStream(options.ConnectionTimeout)}
+		httpClient:       newHTTPClient(options.ConnectionTimeout, &options.TracingOptions),
+		httpStreamClient: newHTTPStream(options.ConnectionTimeout, &options.TracingOptions)}
 
 	return client
 }

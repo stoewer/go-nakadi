@@ -9,6 +9,7 @@ import (
 
 	"github.com/cenkalti/backoff/v3"
 	"github.com/jarcoal/httpmock"
+	basic "github.com/opentracing/basictracer-go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -41,6 +42,16 @@ func TestNew(t *testing.T) {
 		assert.NotNil(t, client.httpClient)
 		assert.Equal(t, defaultTimeOut, client.httpClient.Timeout)
 		assert.NotNil(t, client.tokenProvider)
+	})
+
+	t.Run("with tracing", func(t *testing.T) {
+		client := New(defaultNakadiURL, &ClientOptions{TracingOptions: TracingOptions{Tracer: basic.NewWithOptions(basic.DefaultOptions()), SpanName: "span", ComponentName: "nakadi"}})
+
+		require.NotNil(t, client)
+		assert.Equal(t, client.nakadiURL, defaultNakadiURL)
+		assert.Equal(t, client.timeout, defaultTimeOut)
+		assert.NotNil(t, client.httpClient)
+		assert.Equal(t, defaultTimeOut, client.httpClient.Timeout)
 	})
 
 	t.Run("no options", func(t *testing.T) {

@@ -4,9 +4,12 @@ import (
 	"encoding/json"
 	"net"
 	"net/http"
+	"net/http/httptrace"
 	"time"
 
 	"github.com/cenkalti/backoff/v3"
+	"github.com/opentracing/opentracing-go"
+	"github.com/opentracing/opentracing-go/ext"
 	"github.com/pkg/errors"
 )
 
@@ -18,38 +21,125 @@ const (
 	nakadiHeartbeatInterval = 30 * time.Second
 )
 
+type Transport struct {
+	tr            *http.Transport
+	tracer        opentracing.Tracer
+	spanName      string
+	componentName string
+}
+
+func (t *Transport) CloseIdleConnections() {
+	t.tr.CloseIdleConnections()
+}
+
+// RoundTrip the request with tracing.
+// Client traces are added as logs into the created span.
+func (t *Transport) RoundTrip(req *http.Request) (*http.Response, error) {
+	var span opentracing.Span
+	if t.spanName != "" {
+		req, span = t.injectSpan(req)
+		defer span.Finish()
+		req = injectClientTrace(req, span)
+		span.LogKV("http_do", "start")
+	}
+	rsp, err := t.tr.RoundTrip(req)
+	if span != nil {
+		span.LogKV("http_do", "stop")
+		if rsp != nil {
+			ext.HTTPStatusCode.Set(span, uint16(rsp.StatusCode))
+		}
+	}
+	return rsp, err
+}
+
+func (t *Transport) injectSpan(req *http.Request) (*http.Request, opentracing.Span) {
+	parentSpan := opentracing.SpanFromContext(req.Context())
+	var span opentracing.Span
+	if parentSpan != nil {
+		req = req.WithContext(opentracing.ContextWithSpan(req.Context(), parentSpan))
+		span = t.tracer.StartSpan(t.spanName, opentracing.ChildOf(parentSpan.Context()))
+	} else {
+		span = t.tracer.StartSpan(t.spanName)
+	}
+
+	// add Tags
+	ext.Component.Set(span, t.componentName)
+	ext.HTTPUrl.Set(span, req.URL.String())
+	ext.HTTPMethod.Set(span, req.Method)
+	ext.SpanKind.Set(span, "client")
+
+	_ = t.tracer.Inject(span.Context(), opentracing.HTTPHeaders, opentracing.HTTPHeadersCarrier(req.Header))
+
+	return req, span
+}
+
+func injectClientTrace(req *http.Request, span opentracing.Span) *http.Request {
+	trace := &httptrace.ClientTrace{
+		ConnectStart: func(string, string) {
+			span.LogKV("connect", "start")
+		},
+		GetConn: func(string) {
+			span.LogKV("get_conn", "start")
+		},
+		WroteHeaders: func() {
+			span.LogKV("wrote_headers", "done")
+		},
+		WroteRequest: func(wri httptrace.WroteRequestInfo) {
+			if wri.Err != nil {
+				span.LogKV("wrote_request", wri.Err.Error())
+			} else {
+				span.LogKV("wrote_request", "done")
+			}
+		},
+		GotFirstResponseByte: func() {
+			span.LogKV("got_first_byte", "done")
+		},
+	}
+	return req.WithContext(httptrace.WithClientTrace(req.Context(), trace))
+}
+
 // newHTTPClient crates an http client which is used for non streaming requests.
-func newHTTPClient(timeout time.Duration) *http.Client {
+func newHTTPClient(timeout time.Duration, tracingOptions *TracingOptions) *http.Client {
+	t := &http.Transport{
+		Proxy: http.ProxyFromEnvironment,
+		DialContext: (&net.Dialer{
+			Timeout:   timeout,
+			KeepAlive: defaultKeepAlive,
+			DualStack: true,
+		}).DialContext,
+		MaxIdleConns:        100,
+		IdleConnTimeout:     defaultIdleConnTimeout,
+		TLSHandshakeTimeout: timeout,
+	}
 	return &http.Client{
 		Timeout: timeout,
-		Transport: &http.Transport{
-			Proxy: http.ProxyFromEnvironment,
-			DialContext: (&net.Dialer{
-				Timeout:   timeout,
-				KeepAlive: defaultKeepAlive,
-				DualStack: true,
-			}).DialContext,
-			MaxIdleConns:        100,
-			IdleConnTimeout:     defaultIdleConnTimeout,
-			TLSHandshakeTimeout: timeout,
-		},
+		Transport: &Transport{
+			tr:            t,
+			tracer:        tracingOptions.Tracer,
+			spanName:      tracingOptions.SpanName,
+			componentName: tracingOptions.ComponentName},
 	}
 }
 
 // newHTTPStream creates an http client which is used for streaming purposes.
-func newHTTPStream(timeout time.Duration) *http.Client {
+func newHTTPStream(timeout time.Duration, tracingOptions *TracingOptions) *http.Client {
+	t := &http.Transport{
+		Proxy: http.ProxyFromEnvironment,
+		DialContext: (&net.Dialer{
+			Timeout:   timeout,
+			KeepAlive: 2 * nakadiHeartbeatInterval,
+			DualStack: true,
+		}).DialContext,
+		MaxIdleConns:        100,
+		IdleConnTimeout:     2 * nakadiHeartbeatInterval,
+		TLSHandshakeTimeout: timeout,
+	}
 	return &http.Client{
-		Transport: &http.Transport{
-			Proxy: http.ProxyFromEnvironment,
-			DialContext: (&net.Dialer{
-				Timeout:   timeout,
-				KeepAlive: 2 * nakadiHeartbeatInterval,
-				DualStack: true,
-			}).DialContext,
-			MaxIdleConns:        100,
-			IdleConnTimeout:     2 * nakadiHeartbeatInterval,
-			TLSHandshakeTimeout: timeout,
-		},
+		Transport: &Transport{
+			tr:            t,
+			tracer:        tracingOptions.Tracer,
+			spanName:      tracingOptions.SpanName,
+			componentName: tracingOptions.ComponentName},
 	}
 }
 

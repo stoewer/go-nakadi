@@ -3,18 +3,21 @@ package nakadi
 import (
 	"encoding/json"
 	"io/ioutil"
+	"net/http"
+	"net/http/httptest"
 	"path/filepath"
 	"testing"
 	"time"
 
 	"github.com/cenkalti/backoff/v3"
+	basic "github.com/opentracing/basictracer-go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestNewHTTPClient(t *testing.T) {
 	timeout := 20 * time.Second
-	client := newHTTPClient(timeout)
+	client := newHTTPClient(timeout, &TracingOptions{})
 
 	require.NotNil(t, client)
 	assert.Equal(t, timeout, client.Timeout)
@@ -22,7 +25,7 @@ func TestNewHTTPClient(t *testing.T) {
 
 func TestNewHTTPStream(t *testing.T) {
 	timeout := 20 * time.Second
-	client := newHTTPStream(timeout)
+	client := newHTTPStream(timeout, &TracingOptions{})
 
 	require.NotNil(t, client)
 	assert.Equal(t, 0*time.Second, client.Timeout)
@@ -96,6 +99,57 @@ func helperMakeCounter(n int) chan int {
 		close(counter)
 	}()
 	return counter
+}
+
+func TestTransport(t *testing.T) {
+	options := basic.DefaultOptions()
+	options.Recorder = basic.NewInMemoryRecorder()
+	tracer := basic.NewWithOptions(options)
+	for _, tt := range []struct {
+		name           string
+		tracingOptions TracingOptions
+	}{
+		{
+			name: "All defaults",
+		},
+		{
+			name:           "Empty TracingOptions",
+			tracingOptions: TracingOptions{},
+		},
+		{
+			name: "With opentracing",
+			tracingOptions: TracingOptions{
+				Tracer:        tracer,
+				SpanName:      "span",
+				ComponentName: "nakadi"},
+		},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if tt.tracingOptions.Tracer != nil {
+					if r.Header.Get("Ot-Tracer-Sampled") == "" ||
+						r.Header.Get("Ot-Tracer-Traceid") == "" ||
+						r.Header.Get("Ot-Tracer-Spanid") == "" {
+						t.Errorf("One of the OT Tracer headers are missing: %v", r.Header)
+					}
+				}
+				w.WriteHeader(http.StatusOK)
+			}))
+			defer ts.Close()
+
+			req := httptest.NewRequest("GET", ts.URL, nil)
+
+			client := newHTTPClient(0, &tt.tracingOptions)
+			rt := client.Transport
+
+			_, err := rt.RoundTrip(req)
+			if err != nil {
+				t.Errorf("Transport RoundTrip error : %v", err)
+				return
+			}
+
+		})
+	}
 }
 
 // brokenBodyReader is an implementation of ReadCloser interface to be used for
