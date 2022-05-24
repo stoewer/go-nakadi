@@ -15,10 +15,11 @@ type publishAPI interface {
 // batch collection timeout and max batch size and instead of creating many separate requests to nakadi it will create
 // only several of them with aggregated data.
 type BatchPublisher struct {
-	publishAPI       publishAPI
-	options          BatchPublisherOptions
-	eventsChannel    chan *eventToPublish
-	dispatchFinished chan int
+	publishAPI             publishAPI
+	batchCollectionTimeout time.Duration
+	maxBatchSize           int
+	eventsChannel          chan *eventToPublish
+	dispatchFinished       chan int
 }
 
 // BatchPublisherOptions specifies parameters that should be used to collect events to batches
@@ -27,15 +28,38 @@ type BatchPublisherOptions struct {
 	BatchCollectionTimeout time.Duration
 	// Maximum batch size - it is guaranteed that not more than MaxBatchSize events will be sent within one batch
 	MaxBatchSize int
+	// Size of the intermediate queue in which events are stored before being published.
+	// If queue is full, new events will be dropped.
+	BatchQueueSize int
 }
 
-// NewPublishingBatcher creates a proxy for batching based on api and batching parameters
-func NewPublishingBatcher(api *PublishAPI, options BatchPublisherOptions) *BatchPublisher {
+func (o *BatchPublisherOptions) withDefaults() *BatchPublisherOptions {
+	var copyOptions BatchPublisherOptions
+	if o != nil {
+		copyOptions = *o
+	}
+	if copyOptions.BatchCollectionTimeout == 0 {
+		copyOptions.BatchCollectionTimeout = time.Second
+	}
+	if copyOptions.MaxBatchSize == 0 {
+		copyOptions.MaxBatchSize = 10
+	}
+	if copyOptions.BatchQueueSize == 0 {
+		copyOptions.BatchQueueSize = 1000
+	}
+	return &copyOptions
+}
+
+// NewBatchPublisher creates a proxy for batching based on api and batching parameters
+func NewBatchPublisher(api *PublishAPI, options *BatchPublisherOptions) *BatchPublisher {
+	options = options.withDefaults()
+
 	result := BatchPublisher{
-		publishAPI:       api,
-		options:          options,
-		eventsChannel:    make(chan *eventToPublish, 1000),
-		dispatchFinished: make(chan int),
+		publishAPI:             api,
+		batchCollectionTimeout: options.BatchCollectionTimeout,
+		maxBatchSize:           options.MaxBatchSize,
+		eventsChannel:          make(chan *eventToPublish, options.BatchQueueSize),
+		dispatchFinished:       make(chan int),
 	}
 	go result.dispatchThread()
 	return &result
@@ -93,11 +117,11 @@ func (p *BatchPublisher) dispatchThread() {
 				break
 			}
 			batch = append(batch, event)
-			finishAt := event.requestedAt.Add(p.options.BatchCollectionTimeout)
+			finishAt := event.requestedAt.Add(p.batchCollectionTimeout)
 			finishBatchCollectionAt = &finishAt
 		} else {
 			flush := false
-			if len(batch) >= p.options.MaxBatchSize || time.Now().After(*finishBatchCollectionAt) {
+			if len(batch) >= p.maxBatchSize || time.Now().After(*finishBatchCollectionAt) {
 				flush = true
 			} else {
 				select {

@@ -13,7 +13,7 @@ import (
 // Check that publishing batcher is getting closed after usage
 func TestBatchPublisher_Close(t *testing.T) {
 	t.Run("Test closing", func(t *testing.T) {
-		batcher := NewPublishingBatcher(nil, BatchPublisherOptions{})
+		batcher := NewBatchPublisher(nil, &BatchPublisherOptions{})
 		batcher.Close()
 	})
 }
@@ -119,8 +119,8 @@ func TestBatchPublisher_Publish(t *testing.T) {
 	t.Run("Test that slices publishing is propagated without waiting", func(t *testing.T) {
 		batcher, mockAPI := setupTestBatchPublisher(time.Hour*24, 2)
 		itemsToPublish := [][]string{
-			{fmt.Sprintf("batch one")},
-			{fmt.Sprintf("batch two")},
+			{"batch one"},
+			{"batch two"},
 		}
 		mockAPI.On("Publish", itemsToPublish[0]).Once().Return(nil)
 		mockAPI.On("Publish", itemsToPublish[1]).Once().Return(nil)
@@ -172,13 +172,11 @@ func setupTestBatchPublisher(batchCollectionTimeout time.Duration, maxBatchSize 
 		dataDiscarded: make(map[string]struct{}),
 	}
 	result := BatchPublisher{
-		publishAPI: api,
-		options: BatchPublisherOptions{
-			MaxBatchSize:           maxBatchSize,
-			BatchCollectionTimeout: batchCollectionTimeout,
-		},
-		eventsChannel:    make(chan *eventToPublish, 1000),
-		dispatchFinished: make(chan int),
+		publishAPI:             api,
+		maxBatchSize:           maxBatchSize,
+		batchCollectionTimeout: batchCollectionTimeout,
+		eventsChannel:          make(chan *eventToPublish, 1000),
+		dispatchFinished:       make(chan int),
 	}
 	go result.dispatchThread()
 	return &result, api
