@@ -119,7 +119,9 @@ func TestSimpleStream_nextEvents(t *testing.T) {
 		return &simpleStream{
 			nakadiStreamID: "stream-id",
 			buffer:         bufio.NewReaderSize(response.Body, 0),
-			closer:         response.Body}
+			closer:         response.Body,
+			readTimeout:    1 * time.Second,
+		}
 	}
 
 	t.Run("fail stream closed", func(t *testing.T) {
