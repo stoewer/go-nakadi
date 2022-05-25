@@ -29,7 +29,7 @@ type BatchPublisherOptions struct {
 	// Maximum batch size - it is guaranteed that not more than MaxBatchSize events will be sent within one batch
 	MaxBatchSize int
 	// Size of the intermediate queue in which events are stored before being published.
-	//If the queue is full, publishing call will be blocked, waiting for batch to be assembled
+	// If the queue is full, publishing call will be blocked, waiting for batch to be assembled
 	BatchQueueSize int
 }
 
@@ -110,9 +110,9 @@ func (p *BatchPublisher) dispatchThread() {
 	defer func() { p.dispatchFinished <- 1 }()
 	batch := make([]*eventToPublish, 0, 1)
 	var finishBatchCollectionAt *time.Time
-	flush := func(cbatch []*eventToPublish) {
-		if len(cbatch) > 0 {
-			go p.publishBatchToNakadi(cbatch)
+	flush := func() {
+		if len(batch) > 0 {
+			go p.publishBatchToNakadi(batch)
 			batch = make([]*eventToPublish, 0, 1)
 		}
 		finishBatchCollectionAt = nil
@@ -128,17 +128,17 @@ func (p *BatchPublisher) dispatchThread() {
 			finishBatchCollectionAt = &finishAt
 		} else {
 			if len(batch) >= p.maxBatchSize || time.Now().After(*finishBatchCollectionAt) {
-				flush(batch)
+				flush()
 			} else {
 				select {
 				case <-time.After(time.Until(*finishBatchCollectionAt)):
-					flush(batch)
+					flush()
 				case evt, ok := <-p.eventsChannel:
 					if ok {
 						batch = append(batch, evt)
 						break
 					}
-					flush(batch)
+					flush()
 				}
 			}
 		}
