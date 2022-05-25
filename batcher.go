@@ -29,6 +29,7 @@ type BatchPublisherOptions struct {
 	// Maximum batch size - it is guaranteed that not more than MaxBatchSize events will be sent within one batch
 	MaxBatchSize int
 	// Size of the intermediate queue in which events are stored before being published.
+	//If the queue is full, publishing call will be blocked, waiting for batch to be assembled
 	BatchQueueSize int
 }
 
