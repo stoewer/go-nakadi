@@ -45,7 +45,7 @@ func TestNew(t *testing.T) {
 	})
 
 	t.Run("with tracing", func(t *testing.T) {
-		client := New(defaultNakadiURL, &ClientOptions{TracingOptions: TracingOptions{Tracer: basic.NewWithOptions(basic.DefaultOptions()), SpanName: "span", ComponentName: "nakadi"}})
+		client := New(defaultNakadiURL, &ClientOptions{Middleware: NewTracingMiddleware(&TracingOptions{Tracer: basic.NewWithOptions(basic.DefaultOptions()), ComponentName: "nakadi"})})
 
 		require.NotNil(t, client)
 		assert.Equal(t, client.nakadiURL, defaultNakadiURL)
