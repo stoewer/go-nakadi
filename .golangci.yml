@@ -3,8 +3,6 @@ linters:
   - goconst
   - gocyclo
   - gosec
-  - interfacer
-  - maligned
   - stylecheck
   - unconvert
   disable:
@@ -14,3 +12,9 @@ linters:
 linters-settings:
   goconst:
     min-occurrences: 4
+
+issues:
+  exclude-rules:
+  - linters: [gosec]
+    path: processor.go
+    text: "G404: Use of weak random number generator"
