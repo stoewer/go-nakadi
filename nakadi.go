@@ -42,10 +42,15 @@ type Client struct {
 	httpStreamClient *http.Client
 }
 
+// Middleware provides a chainable http.RoundTripper middleware that can be used
+// to hook into requests e.g. for logging or tracing purposes.
+type Middleware func(transport *http.Transport) http.RoundTripper
+
 // ClientOptions contains all non mandatory parameters used to instantiate the Nakadi client.
 type ClientOptions struct {
 	TokenProvider     func() (string, error)
 	ConnectionTimeout time.Duration
+	Middleware        Middleware
 }
 
 func (o *ClientOptions) withDefaults() *ClientOptions {
@@ -55,6 +60,9 @@ func (o *ClientOptions) withDefaults() *ClientOptions {
 	}
 	if copyOptions.ConnectionTimeout == 0 {
 		copyOptions.ConnectionTimeout = defaultTimeOut
+	}
+	if copyOptions.Middleware == nil {
+		copyOptions.Middleware = func(transport *http.Transport) http.RoundTripper { return transport }
 	}
 	return &copyOptions
 }
@@ -69,7 +77,7 @@ func New(url string, options *ClientOptions) *Client {
 		nakadiURL:        url,
 		timeout:          options.ConnectionTimeout,
 		tokenProvider:    options.TokenProvider,
-		httpClient:       newHTTPClient(options.ConnectionTimeout),
+		httpClient:       newHTTPClient(options.ConnectionTimeout, options.Middleware),
 		httpStreamClient: newHTTPStream(options.ConnectionTimeout)}
 
 	return client

@@ -19,21 +19,21 @@ const (
 )
 
 // newHTTPClient crates an http client which is used for non streaming requests.
-func newHTTPClient(timeout time.Duration) *http.Client {
-	return &http.Client{
-		Timeout: timeout,
-		Transport: &http.Transport{
-			Proxy: http.ProxyFromEnvironment,
-			DialContext: (&net.Dialer{
-				Timeout:   timeout,
-				KeepAlive: defaultKeepAlive,
-				DualStack: true,
-			}).DialContext,
-			MaxIdleConns:        100,
-			IdleConnTimeout:     defaultIdleConnTimeout,
-			TLSHandshakeTimeout: timeout,
-		},
+func newHTTPClient(timeout time.Duration, middleware Middleware) *http.Client {
+	t := &http.Transport{
+		Proxy: http.ProxyFromEnvironment,
+		DialContext: (&net.Dialer{
+			Timeout:   timeout,
+			KeepAlive: defaultKeepAlive,
+			DualStack: true,
+		}).DialContext,
+		MaxIdleConns:        100,
+		IdleConnTimeout:     defaultIdleConnTimeout,
+		TLSHandshakeTimeout: timeout,
 	}
+	return &http.Client{
+		Timeout:   timeout,
+		Transport: middleware(t)}
 }
 
 // newHTTPStream creates an http client which is used for streaming purposes.
