@@ -1,0 +1,46 @@
+version: 2.1
+
+orbs:
+  codecov: codecov/codecov@3.2.3
+
+jobs:
+
+  lint:
+    docker:
+    - image: golang:1.18
+
+    steps:
+    - checkout
+    - run: 
+        name: Install golangci-lint
+        environment:
+          VERSION: "1.46.2"
+        command: |
+          wget -v https://github.com/golangci/golangci-lint/releases/download/v$VERSION/golangci-lint-$VERSION-linux-amd64.tar.gz \
+              -O /tmp/golangci-lint.tar.gz
+          tar --strip-components=1 -C /usr/bin/ -xvf /tmp/golangci-lint.tar.gz
+          golangci-lint --version
+    - run:
+        name: Lint with golangci-lint
+        command: |
+          golangci-lint run
+
+  unit-test:
+    docker:
+    - image: golang:1.18
+
+    steps:
+    - checkout
+    - run: 
+        name: Unit test
+        command: |
+          go test -v -mod=readonly -race -count=1 -cover -coverprofile=profile.cov ./...
+    - codecov/upload:
+        file: profile.cov
+
+workflows:
+  version: 2
+  build-workflow:
+    jobs:
+    - lint
+    - unit-test
