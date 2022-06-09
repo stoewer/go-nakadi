@@ -1,6 +1,6 @@
-[![Build Status](https://travis-ci.org/stoewer/go-nakadi.svg?branch=master)](https://travis-ci.org/stoewer/go-nakadi)
-[![Coverage Status](https://coveralls.io/repos/github/stoewer/go-nakadi/badge.svg?branch=master)](https://coveralls.io/github/stoewer/go-nakadi?branch=master)
-[![GoDoc](https://godoc.org/github.com/stoewer/go-nakadi?status.svg)](https://godoc.org/github.com/stoewer/go-nakadi)
+[![CircleCI](https://circleci.com/gh/stoewer/go-nakadi/tree/master.svg?style=svg)](https://circleci.com/gh/stoewer/go-nakadi/tree/master)
+[![codecov](https://codecov.io/gh/stoewer/go-nakadi/branch/master/graph/badge.svg?token=GOFy3mzvj7)](https://codecov.io/gh/stoewer/go-nakadi)
+[![Go Reference](https://pkg.go.dev/badge/github.com/stoewer/go-nakadi.svg)](https://pkg.go.dev/github.com/stoewer/go-nakadi)
 ---
 
 go-nakadi

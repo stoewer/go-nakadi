@@ -3,6 +3,7 @@ package nakadi
 import (
 	"encoding/json"
 	"io/ioutil"
+	"net/http"
 	"path/filepath"
 	"testing"
 	"time"
@@ -14,7 +15,7 @@ import (
 
 func TestNewHTTPClient(t *testing.T) {
 	timeout := 20 * time.Second
-	client := newHTTPClient(timeout)
+	client := newHTTPClient(timeout, func(transport *http.Transport) http.RoundTripper { return transport })
 
 	require.NotNil(t, client)
 	assert.Equal(t, timeout, client.Timeout)
