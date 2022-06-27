@@ -11,14 +11,15 @@ import (
 )
 
 // Check that publishing batcher is getting closed after usage
-func TestBatchPublisher_Close(t *testing.T) {
+func TestBatchPublishAPI_Close(t *testing.T) {
+	client := New("http://example.com", nil)
 	t.Run("Test closing", func(t *testing.T) {
-		batcher := NewBatchPublisher(nil, &BatchPublisherOptions{})
+		batcher := NewBatchPublishAPI(client, "test-event-type", nil, nil)
 		batcher.Close()
 	})
 }
 
-func TestBatchPublisher_Publish(t *testing.T) {
+func TestBatchPublishAPI_Publish(t *testing.T) {
 	t.Run("Test that batching by max batch size is working", func(t *testing.T) {
 		const maxBatchSize = 4
 		batcher, mockAPI := setupTestBatchPublisher(24*time.Hour, maxBatchSize)
@@ -165,13 +166,13 @@ func (m *mockPublishAPI) Publish(events interface{}) error {
 	return e.(error)
 }
 
-func setupTestBatchPublisher(batchCollectionTimeout time.Duration, maxBatchSize int) (*BatchPublisher, *mockPublishAPI) {
+func setupTestBatchPublisher(batchCollectionTimeout time.Duration, maxBatchSize int) (*BatchPublishAPI, *mockPublishAPI) {
 	api := &mockPublishAPI{
 		batchSizes:    make([]int, 0),
 		dataPublished: make(map[string]struct{}),
 		dataDiscarded: make(map[string]struct{}),
 	}
-	result := BatchPublisher{
+	result := BatchPublishAPI{
 		publishAPI:             api,
 		maxBatchSize:           maxBatchSize,
 		batchCollectionTimeout: batchCollectionTimeout,

@@ -5,7 +5,7 @@ to many features of Nakadi's API. The package can be used to manage event type d
 The EventAPI can be used to inspect existing event types and allows further to create new event
 types and to update existing ones. The SubscriptionAPI provides subscription management: existing
 subscriptions can be fetched from Nakadi and of course it is also possible to create new ones.
-The publishAPI of this package is used to broadcast event types of all event type categories via
+The PublishAPI of this package is used to broadcast event types of all event type categories via
 Nakadi. Last but not least, the package also implements a StreamAPI, which enables event processing
 on top of Nakadi's subscription based high level API.
 
