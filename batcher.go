@@ -118,7 +118,7 @@ func (p *BatchPublishAPI) dispatchThread() {
 	var finishBatchCollectionAt *time.Time
 	flush := func() {
 		if len(batch) > 0 {
-			go p.publishBatchToNakadi(batch)
+			p.publishBatchToNakadi(batch)
 			batch = make([]*eventToPublish, 0, 1)
 		}
 		finishBatchCollectionAt = nil
