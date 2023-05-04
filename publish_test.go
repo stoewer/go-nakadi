@@ -1,6 +1,7 @@
 package nakadi
 
 import (
+	"compress/gzip"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -154,6 +155,122 @@ func TestPublishAPI_Publish(t *testing.T) {
 	})
 }
 
+func TestPublishAPI_PublishWithCompression(t *testing.T) {
+	httpmock.Activate()
+	defer httpmock.DeactivateAndReset()
+
+	events := []SomeUndefinedEvent{}
+	helperLoadTestData(t, "events-undefined-create.json", &events)
+
+	url := fmt.Sprintf("%s/event-types/%s/events", defaultNakadiURL, "test-event.undefined")
+
+	client := &Client{nakadiURL: defaultNakadiURL, httpClient: http.DefaultClient}
+	publishOptions := &PublishOptions{
+		EnableCompression:    true,
+		CompressionAlgorithm: CompressionAlgorithmGzip,
+		CompressionLevel:     gzip.DefaultCompression,
+	}
+	publishAPI := NewPublishAPI(client, "test-event.undefined", publishOptions)
+
+	t.Run("fail to connect", func(t *testing.T) {
+		httpmock.RegisterResponder("POST", url, httpmock.NewErrorResponder(assert.AnError))
+
+		err := publishAPI.Publish(events)
+
+		require.Error(t, err)
+		assert.Regexp(t, assert.AnError, err)
+	})
+
+	t.Run("fail decode body", func(t *testing.T) {
+		httpmock.RegisterResponder("POST", url, httpmock.NewStringResponder(http.StatusMultiStatus, ""))
+
+		err := publishAPI.Publish(events)
+		require.Error(t, err)
+		assert.Regexp(t, "unable to decode response body", err)
+
+		httpmock.RegisterResponder("POST", url, httpmock.NewStringResponder(http.StatusUnauthorized, "most-likely-stacktrace"))
+
+		err = publishAPI.Publish(events)
+		require.Error(t, err)
+		assert.Regexp(t, "unable to request event types: most-likely-stacktrace", err)
+	})
+
+	t.Run("fail multi status", func(t *testing.T) {
+		batchItemResp := []BatchItemResponse{{Detail: "error one"}, {Detail: "error two"}}
+		responder, _ := httpmock.NewJsonResponder(http.StatusMultiStatus, batchItemResp)
+		httpmock.RegisterResponder("POST", url, responder)
+
+		err := publishAPI.Publish(events)
+		require.Error(t, err)
+
+		batchItemErr, ok := err.(BatchItemsError)
+		require.True(t, ok)
+		assert.Equal(t, "error one", batchItemErr[0].Detail)
+		assert.Equal(t, "error two", batchItemErr[1].Detail)
+	})
+
+	t.Run("fail unprocessable", func(t *testing.T) {
+		batchItemResp := []BatchItemResponse{{Detail: "error one"}, {Detail: "error two"}}
+		responder, _ := httpmock.NewJsonResponder(http.StatusUnprocessableEntity, batchItemResp)
+		httpmock.RegisterResponder("POST", url, responder)
+
+		err := publishAPI.Publish(events)
+
+		require.Error(t, err)
+		assert.Regexp(t, BatchItemsError{}, err)
+
+		batchItemErr, ok := err.(BatchItemsError)
+		require.True(t, ok)
+		assert.Equal(t, "error one", batchItemErr[0].Detail)
+		assert.Equal(t, "error two", batchItemErr[1].Detail)
+	})
+
+	t.Run("fail unauthorized", func(t *testing.T) {
+		problem := problemJSON{Detail: "not authorized"}
+		responder, _ := httpmock.NewJsonResponder(http.StatusUnauthorized, problem)
+		httpmock.RegisterResponder("POST", url, responder)
+
+		err := publishAPI.Publish(events)
+
+		require.Error(t, err)
+		assert.Regexp(t, "not authorized", err)
+	})
+
+	t.Run("fail to read body", func(t *testing.T) {
+		responder := httpmock.ResponderFromResponse(&http.Response{
+			Status:     strconv.Itoa(http.StatusBadRequest),
+			StatusCode: http.StatusBadRequest,
+			Body:       brokenBodyReader{},
+		})
+		httpmock.RegisterResponder("POST", url, responder)
+
+		err := publishAPI.Publish(events)
+		require.Error(t, err)
+		assert.Regexp(t, "unable to read response body", err)
+	})
+
+	t.Run("success", func(t *testing.T) {
+		httpmock.RegisterResponder("POST", url, httpmock.Responder(func(r *http.Request) (*http.Response, error) {
+			uploaded := []SomeUndefinedEvent{}
+
+			// decompress the request body
+			reader, err := gzip.NewReader(r.Body)
+			if err != nil {
+				panic(err)
+			}
+			err = json.NewDecoder(reader).Decode(&uploaded)
+
+			require.NoError(t, err)
+			assert.Equal(t, events, uploaded)
+			return httpmock.NewStringResponse(http.StatusOK, ""), nil
+		}))
+
+		err := publishAPI.Publish(events)
+
+		assert.NoError(t, err)
+	})
+}
+
 func TestPublishAPI_PublishDataChangeEvent(t *testing.T) {
 	httpmock.Activate()
 	defer httpmock.DeactivateAndReset()
@@ -215,6 +332,8 @@ func TestPublishOptions_withDefaults(t *testing.T) {
 				InitialRetryInterval: defaultInitialRetryInterval,
 				MaxRetryInterval:     defaultMaxRetryInterval,
 				MaxElapsedTime:       defaultMaxElapsedTime,
+				CompressionAlgorithm: defaultCompressionAlgorithm,
+				CompressionLevel:     defaultGzipCompressionLevel,
 			},
 		},
 		{
@@ -223,6 +342,8 @@ func TestPublishOptions_withDefaults(t *testing.T) {
 				InitialRetryInterval: time.Hour,
 				MaxRetryInterval:     defaultMaxRetryInterval,
 				MaxElapsedTime:       defaultMaxElapsedTime,
+				CompressionAlgorithm: defaultCompressionAlgorithm,
+				CompressionLevel:     defaultGzipCompressionLevel,
 			},
 		},
 		{
@@ -231,6 +352,8 @@ func TestPublishOptions_withDefaults(t *testing.T) {
 				InitialRetryInterval: defaultInitialRetryInterval,
 				MaxRetryInterval:     time.Hour,
 				MaxElapsedTime:       defaultMaxElapsedTime,
+				CompressionAlgorithm: defaultCompressionAlgorithm,
+				CompressionLevel:     defaultGzipCompressionLevel,
 			},
 		},
 		{
@@ -239,6 +362,8 @@ func TestPublishOptions_withDefaults(t *testing.T) {
 				InitialRetryInterval: defaultInitialRetryInterval,
 				MaxRetryInterval:     defaultMaxRetryInterval,
 				MaxElapsedTime:       time.Hour,
+				CompressionAlgorithm: defaultCompressionAlgorithm,
+				CompressionLevel:     defaultGzipCompressionLevel,
 			},
 		},
 		{
@@ -248,6 +373,8 @@ func TestPublishOptions_withDefaults(t *testing.T) {
 				InitialRetryInterval: defaultInitialRetryInterval,
 				MaxRetryInterval:     defaultMaxRetryInterval,
 				MaxElapsedTime:       defaultMaxElapsedTime,
+				CompressionAlgorithm: defaultCompressionAlgorithm,
+				CompressionLevel:     defaultGzipCompressionLevel,
 			},
 		}, {
 			Options: &PublishOptions{Retry: true},
@@ -256,6 +383,8 @@ func TestPublishOptions_withDefaults(t *testing.T) {
 				InitialRetryInterval: defaultInitialRetryInterval,
 				MaxRetryInterval:     defaultMaxRetryInterval,
 				MaxElapsedTime:       defaultMaxElapsedTime,
+				CompressionAlgorithm: defaultCompressionAlgorithm,
+				CompressionLevel:     defaultGzipCompressionLevel,
 			},
 		},
 	}

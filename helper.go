@@ -98,6 +98,17 @@ type backOffConfiguration struct {
 	MaxElapsedTime time.Duration
 }
 
+// compressionConfiguration holds initial values for the initialization of a backoff that can
+// be used in retries.
+type compressionConfiguration struct {
+	// Whether to compress or not
+	enableCompression bool
+	// The algo to use
+	algorithm CompressionAlgorithm
+	// the level of compression required
+	level int
+}
+
 // create initializes a new backoff from configured parameters.
 func (rc *backOffConfiguration) create() backoff.BackOff {
 	if !rc.Retry {

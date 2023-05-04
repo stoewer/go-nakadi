@@ -16,7 +16,10 @@ package nakadi
 
 import (
 	"bytes"
+	"compress/gzip"
 	"encoding/json"
+	"fmt"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"time"
@@ -30,6 +33,9 @@ const (
 	defaultInitialRetryInterval = time.Millisecond * 10
 	defaultMaxRetryInterval     = 10 * time.Second
 	defaultMaxElapsedTime       = 30 * time.Second
+	defaultCompressionAlgorithm = CompressionAlgorithmGzip
+	defaultGzipCompressionLevel = gzip.DefaultCompression
+	defaultCompressionLevel     = defaultGzipCompressionLevel
 )
 
 // A Client represents a basic configuration to access a Nakadi instance. The client is used to configure
@@ -184,19 +190,19 @@ func (c *Client) httpPUT(backOff backoff.BackOff, url string, body interface{}, 
 }
 
 // httpPOST sends json encoded data via POST request and returns a response.
-func (c *Client) httpPOST(backOff backoff.BackOff, url string, body interface{}, msg string) (*http.Response, error) {
-	encoded, err := json.Marshal(body)
-	if err != nil {
-		return nil, errors.Wrapf(err, "%s: unable to encode json body", msg)
-	}
+func (c *Client) httpPOSTHelper(backOff backoff.BackOff, url string, body io.Reader, headers map[string]string, msg string) (*http.Response, error) {
 
 	var response *http.Response
-	err = backoff.Retry(func() error {
-		request, err := http.NewRequest("POST", url, bytes.NewReader(encoded))
+	err := backoff.Retry(func() error {
+		request, err := http.NewRequest("POST", url, body)
 		if err != nil {
 			return backoff.Permanent(errors.Wrapf(err, "%s: unable to prepare request", msg))
 		}
 
+		// add headers
+		for k, v := range headers {
+			request.Header.Set(k, v)
+		}
 		request.Header.Set("Content-Type", "application/json;charset=UTF-8")
 		if c.tokenProvider != nil {
 			token, err := c.tokenProvider()
@@ -225,6 +231,49 @@ func (c *Client) httpPOST(backOff backoff.BackOff, url string, body interface{},
 	}, backOff)
 
 	return response, err
+}
+
+// httpPOST sends json encoded data via POST request and returns a response.
+func (c *Client) httpPOST(backOff backoff.BackOff, url string, body interface{}, msg string) (*http.Response, error) {
+	encoded, err := json.Marshal(body)
+	if err != nil {
+		return nil, errors.Wrapf(err, "%s: unable to encode json body", msg)
+	}
+	return c.httpPOSTHelper(backOff, url, bytes.NewReader(encoded), map[string]string{}, msg)
+}
+
+func (c *Client) httpPOSTWithCompression(create backoff.BackOff, url string, events interface{}, msg string, conf compressionConfiguration) (*http.Response, error) {
+
+	encoded, err := json.Marshal(events)
+	if err != nil {
+		return nil, errors.Wrapf(err, "%s: unable to encode json body", msg)
+	}
+	compressedPayload, err := compress(encoded, conf.algorithm, conf.level)
+	if err != nil {
+		return nil, errors.Wrapf(err, "%s: unable to encode json body", msg)
+	}
+	headers := map[string]string{"Content-Encoding": string(conf.algorithm)}
+	return c.httpPOSTHelper(create, url, compressedPayload, headers, msg)
+}
+
+func compress(encoded []byte, algorithm CompressionAlgorithm, level int) (io.Reader, error) {
+
+	switch algorithm {
+	case CompressionAlgorithmGzip:
+		gzipBuffer := bytes.Buffer{}
+		w, err := gzip.NewWriterLevel(&gzipBuffer, level)
+		if err != nil {
+			return nil, err
+		}
+		w.Write(encoded)
+		err = w.Close()
+		if err != nil {
+			return nil, err
+		}
+		return &gzipBuffer, nil
+	default:
+		return nil, fmt.Errorf("unsupported algorithm")
+	}
 }
 
 // httpDELETE sends a DELETE request. On errors httpDELETE expects a response body to contain
