@@ -74,9 +74,15 @@ type PublishOptions struct {
 	// published.
 	MaxElapsedTime time.Duration
 
-	EnableCompression    bool
+	// Whether to enable compression or not. If set to false, CompressionAlgorithm and
+	// CompressionLevel have no effect. (default: false)
+	EnableCompression bool
+	// CompressionAlgorithm the algorithm to be used. Supported values: [gzip]. Invalid values
+	// default to gzip. (default: gzip)
 	CompressionAlgorithm CompressionAlgorithm
-	CompressionLevel     int
+	// CompressionLevel the level of compression to be used. Supported values: [1, 9]. Invalid values
+	// default to gzip.DefaultCompression. (default: gzip.DefaultCompression)
+	CompressionLevel int
 }
 
 func (o *PublishOptions) withDefaults() *PublishOptions {
@@ -159,8 +165,9 @@ func (p *PublishAPI) PublishBusinessEvent(events []BusinessEvent) error {
 }
 
 // Publish is used to emit a batch of undefined events. But can also be used to publish data change or
-// business events. Depending on the options used when creating the PublishAPI this method will retry
-// to publish the events if the were not successfully published.
+// business events. Depending on the retry options used when creating the PublishAPI this method will retry
+// to publish the events if the were not successfully published. Depending on the compression options used,
+// the method will compress the payload before publishing.
 func (p *PublishAPI) Publish(events interface{}) error {
 	const errMsg = "unable to request event types"
 	var response *http.Response

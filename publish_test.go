@@ -253,7 +253,7 @@ func TestPublishAPI_PublishWithCompression(t *testing.T) {
 		httpmock.RegisterResponder("POST", url, httpmock.Responder(func(r *http.Request) (*http.Response, error) {
 			uploaded := []SomeUndefinedEvent{}
 
-			// decompress the request body
+			assert.Equal(t, "gzip", r.Header.Get("Content-Encoding"))
 			reader, err := gzip.NewReader(r.Body)
 			if err != nil {
 				panic(err)
@@ -266,7 +266,6 @@ func TestPublishAPI_PublishWithCompression(t *testing.T) {
 		}))
 
 		err := publishAPI.Publish(events)
-
 		assert.NoError(t, err)
 	})
 }

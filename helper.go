@@ -98,8 +98,7 @@ type backOffConfiguration struct {
 	MaxElapsedTime time.Duration
 }
 
-// compressionConfiguration holds initial values for the initialization of a backoff that can
-// be used in retries.
+// compressionConfiguration defines the config to be used to compress the payload when publishing events
 type compressionConfiguration struct {
 	// Whether to compress or not
 	enableCompression bool

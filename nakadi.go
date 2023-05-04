@@ -189,17 +189,16 @@ func (c *Client) httpPUT(backOff backoff.BackOff, url string, body interface{}, 
 	return response, err
 }
 
-// httpPOST sends json encoded data via POST request and returns a response.
-func (c *Client) httpPOSTHelper(backOff backoff.BackOff, url string, body io.Reader, headers map[string]string, msg string) (*http.Response, error) {
+// httpPOSTHelper is a helper method to send a given payload via POST and returns a response.
+func (c *Client) httpPOSTHelper(backOff backoff.BackOff, url string, payload io.Reader, headers map[string]string, msg string) (*http.Response, error) {
 
 	var response *http.Response
 	err := backoff.Retry(func() error {
-		request, err := http.NewRequest("POST", url, body)
+		request, err := http.NewRequest("POST", url, payload)
 		if err != nil {
 			return backoff.Permanent(errors.Wrapf(err, "%s: unable to prepare request", msg))
 		}
 
-		// add headers
 		for k, v := range headers {
 			request.Header.Set(k, v)
 		}
@@ -242,6 +241,7 @@ func (c *Client) httpPOST(backOff backoff.BackOff, url string, body interface{},
 	return c.httpPOSTHelper(backOff, url, bytes.NewReader(encoded), map[string]string{}, msg)
 }
 
+// httpPOSTWithCompression sends compressed json encoded data via POST request and returns a response.
 func (c *Client) httpPOSTWithCompression(create backoff.BackOff, url string, events interface{}, msg string, conf compressionConfiguration) (*http.Response, error) {
 
 	encoded, err := json.Marshal(events)
