@@ -73,7 +73,6 @@ type PublishOptions struct {
 	// this value was reached the exponential backoff is halted and the events will not be
 	// published.
 	MaxElapsedTime time.Duration
-
 	// Whether to enable compression or not. If set to false, CompressionAlgorithm and
 	// CompressionLevel have no effect. (default: false)
 	EnableCompression bool
