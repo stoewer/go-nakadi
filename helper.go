@@ -100,11 +100,11 @@ type backOffConfiguration struct {
 
 // compressionConfiguration defines the config to be used to compress the payload when publishing events
 type compressionConfiguration struct {
-	// Whether to compress or not
+	// Whether to compress the payload or not.
 	enableCompression bool
-	// The algo to use
+	// The compression algorithm to be used.
 	algorithm CompressionAlgorithm
-	// the level of compression required
+	// The level of compression to be used while compressing the payload.
 	level int
 }
 
