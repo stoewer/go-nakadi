@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"strconv"
 	"testing"
-
 	"time"
 
 	"github.com/jarcoal/httpmock"

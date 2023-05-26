@@ -12,7 +12,7 @@ import (
 
 // Check that publishing batcher is getting closed after usage
 func TestBatchPublishAPI_Close(t *testing.T) {
-	client := New("http://example.com", nil)
+	client := New("https://example.com", nil)
 	t.Run("Test closing", func(t *testing.T) {
 		batcher := NewBatchPublishAPI(client, "test-event-type", nil, nil)
 		batcher.Close()

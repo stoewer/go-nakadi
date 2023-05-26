@@ -26,10 +26,9 @@ Versions and stability
 This package can be considered stable and ready to use. All releases follow the rules of 
 [semantic versioning](http://semver.org).
 
-Although the master branch is supposed to remain stable, there is not guarantee that braking changes will not
-be merged into master when major versions are released. Therefore the repository contains version tags in 
-order to support vendoring tools such as [glide](https://glide.sh). The tag names follow common conventions 
-and have the following format `v1.0.0`.
+Although the master branch is supposed to remain stable, there is no guarantee that braking changes will not
+be merged into master when major versions are released. Therefore, the repository contains version tags in
+order to support go modules properly. The tag names follow common conventions and have the following format `v1.0.0`.
 
 Dependencies
 ------------

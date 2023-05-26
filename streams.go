@@ -144,12 +144,9 @@ func (s *StreamAPI) NextEvents() (Cursor, []byte, error) {
 
 // CommitCursor commits a cursor to Nakadi.
 func (s *StreamAPI) CommitCursor(cursor Cursor) error {
-	var err error
-
 	commitBackOff := backoff.WithContext(s.commitBackOffConf.create(), s.ctx)
-	backoff.RetryNotify(func() error {
-		err = s.committer.commitCursor(cursor)
-		return err
+	err := backoff.RetryNotify(func() error {
+		return s.committer.commitCursor(cursor)
 	}, commitBackOff, s.notifyErr)
 
 	if err == nil {
@@ -169,11 +166,11 @@ func (s *StreamAPI) Close() error {
 // this routine will never terminate (not even on errors) unless the stream is closed.
 func (s *StreamAPI) startStream() {
 	for {
-		var err error
 		var stream streamer
 
 		streamBackOff := backoff.WithContext(s.streamBackOffConf.create(), s.ctx)
-		backoff.RetryNotify(func() error {
+		err := backoff.RetryNotify(func() error {
+			var err error
 			stream, err = s.opener.openStream()
 			return err
 		}, streamBackOff, s.notifyErr)
@@ -211,7 +208,7 @@ func (s *StreamAPI) startStream() {
 
 			if err != nil {
 				if err == context.Canceled {
-					stream.closeStream()
+					_ = stream.closeStream()
 					close(s.eventCh)
 					return
 				}
@@ -219,7 +216,7 @@ func (s *StreamAPI) startStream() {
 			}
 		}
 
-		stream.closeStream()
+		_ = stream.closeStream()
 	}
 }
 

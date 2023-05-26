@@ -168,7 +168,7 @@ func TestProcessor_Start(t *testing.T) {
 		streamAPI.On("NextEvents").
 			Return(Cursor{}, nil, assert.AnError)
 
-		processor.Start(func(i int, id string, batch []byte) error {
+		_ = processor.Start(func(i int, id string, batch []byte) error {
 			assert.Fail(t, "operator should not be called")
 			return nil
 		})
@@ -191,7 +191,7 @@ func TestProcessor_Start(t *testing.T) {
 		streamAPI.On("NextEvents").
 			Return(Cursor{}, []byte("batch no 1"), nil)
 
-		processor.Start(func(i int, id string, batch []byte) error {
+		_ = processor.Start(func(i int, id string, batch []byte) error {
 			batchCh <- batch
 			return assert.AnError
 		})
@@ -223,7 +223,7 @@ func TestProcessor_Start(t *testing.T) {
 		streamAPI.On("NextEvents").
 			Return(Cursor{}, []byte("batch no 1"), nil)
 
-		processor.Start(func(i int, id string, batch []byte) error {
+		_ = processor.Start(func(i int, id string, batch []byte) error {
 			batchCh <- batch
 			return nil
 		})
@@ -272,14 +272,14 @@ func TestProcessor_Stop(t *testing.T) {
 		streamAPI.On("Close").
 			Return(assert.AnError)
 
-		processor.Start(func(i int, id string, batch []byte) error {
+		_ = processor.Start(func(i int, id string, batch []byte) error {
 			return nil
 		})
 
 		<-newStream.wait
 		newStream.AssertCalled(t, "NewStream", testClient, testSubscriptionID)
 
-		processor.Stop()
+		_ = processor.Stop()
 
 		<-streamAPI.waitClose
 		streamAPI.AssertCalled(t, "Close")
@@ -297,7 +297,7 @@ func TestProcessor_Stop(t *testing.T) {
 		streamAPI.On("Close").
 			Return(nil)
 
-		processor.Start(func(i int, id string, batch []byte) error {
+		_ = processor.Start(func(i int, id string, batch []byte) error {
 			return nil
 		})
 
@@ -305,7 +305,7 @@ func TestProcessor_Stop(t *testing.T) {
 		newStream.AssertCalled(t, "NewStream", testClient, testSubscriptionID)
 
 		<-streamAPI.wait
-		processor.Stop()
+		_ = processor.Stop()
 
 		<-streamAPI.waitClose
 		streamAPI.AssertCalled(t, "Close")
@@ -335,7 +335,7 @@ type mockNewStream struct {
 	wait chan struct{}
 }
 
-func (m *mockNewStream) NewStream(client *Client, subscriptionID string, options *StreamOptions) streamAPI {
+func (m *mockNewStream) NewStream(client *Client, subscriptionID string, _ *StreamOptions) streamAPI {
 	args := m.Called(client, subscriptionID)
 	m.wait <- struct{}{}
 	return args.Get(0).(streamAPI)

@@ -12,7 +12,7 @@ type publishAPI interface {
 
 // BatchPublishAPI allows publishing of events in a batched manner. The batcher collects single events into batches,
 // respecting batch collection timeout and max batch size. Instead of creating many separate requests to nakadi it will
-// aggregate single evewnts and publish them in batches.
+// aggregate single events and publish them in batches.
 type BatchPublishAPI struct {
 	publishAPI             publishAPI
 	batchCollectionTimeout time.Duration

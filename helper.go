@@ -18,14 +18,13 @@ const (
 	nakadiHeartbeatInterval = 30 * time.Second
 )
 
-// newHTTPClient crates an http client which is used for non streaming requests.
+// newHTTPClient crates a http client which is used for non-streaming requests.
 func newHTTPClient(timeout time.Duration, middleware Middleware) *http.Client {
 	t := &http.Transport{
 		Proxy: http.ProxyFromEnvironment,
 		DialContext: (&net.Dialer{
 			Timeout:   timeout,
 			KeepAlive: defaultKeepAlive,
-			DualStack: true,
 		}).DialContext,
 		MaxIdleConns:        100,
 		IdleConnTimeout:     defaultIdleConnTimeout,
@@ -36,7 +35,7 @@ func newHTTPClient(timeout time.Duration, middleware Middleware) *http.Client {
 		Transport: middleware(t)}
 }
 
-// newHTTPStream creates an http client which is used for streaming purposes.
+// newHTTPStream creates a http client which is used for streaming purposes.
 func newHTTPStream(timeout time.Duration) *http.Client {
 	return &http.Client{
 		Transport: &http.Transport{
@@ -44,7 +43,6 @@ func newHTTPStream(timeout time.Duration) *http.Client {
 			DialContext: (&net.Dialer{
 				Timeout:   timeout,
 				KeepAlive: 2 * nakadiHeartbeatInterval,
-				DualStack: true,
 			}).DialContext,
 			MaxIdleConns:        100,
 			IdleConnTimeout:     2 * nakadiHeartbeatInterval,
@@ -66,9 +64,9 @@ type errorJSON struct {
 	ErrorDescription string `json:"error_description"`
 }
 
-// decodeResponseToError will try do decode into problemJSON then errorJSON
+// decodeResponseToError will try to decode into problemJSON then errorJSON
 // and extract details from this defined formats.
-// It will fallback to creating and error with message body
+// It will fall back to creating and error with message body
 // Second parameter is an error message
 func decodeResponseToError(buffer []byte, msg string) error {
 	problem := problemJSON{}
