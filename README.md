@@ -36,7 +36,7 @@ Dependencies
 
 Build dependencies
 
-* github.com/cenkalti/backoff/v3
+* github.com/cenkalti/backoff/v4
 * github.com/pkg/errors
 
 Test dependencies

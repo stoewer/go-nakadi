@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/cenkalti/backoff/v3"
+	"github.com/cenkalti/backoff/v4"
 	"github.com/jarcoal/httpmock"
 	basic "github.com/opentracing/basictracer-go"
 	"github.com/stretchr/testify/assert"
