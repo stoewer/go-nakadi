@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -44,7 +43,7 @@ func (so *simpleStreamOpener) openStream() (streamer, error) {
 	}
 
 	if response.StatusCode >= 400 {
-		buffer, err := ioutil.ReadAll(response.Body)
+		buffer, err := io.ReadAll(response.Body)
 		if err != nil {
 			return nil, errors.Wrap(err, "unable to read response body")
 		}
@@ -118,7 +117,7 @@ func (s *simpleStream) nextEvents() (Cursor, []byte, error) {
 	if batch.Events == nil {
 		return batch.Cursor, nil, nil
 	}
-	return batch.Cursor, []byte(*batch.Events), nil
+	return batch.Cursor, *batch.Events, nil
 }
 
 func (s *simpleStream) readLineTimeout() ([]byte, bool, error) {
@@ -169,7 +168,7 @@ func (s *simpleCommitter) commitCursor(cursor Cursor) error {
 	defer response.Body.Close()
 
 	if response.StatusCode >= 400 {
-		buffer, err := ioutil.ReadAll(response.Body)
+		buffer, err := io.ReadAll(response.Body)
 		if err != nil {
 			return errors.Wrap(err, "unable to read response body")
 		}

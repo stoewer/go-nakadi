@@ -2,7 +2,7 @@ package nakadi
 
 import (
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"time"
 
@@ -135,7 +135,7 @@ func (e *EventAPI) Create(eventType *EventType) error {
 	defer response.Body.Close()
 
 	if response.StatusCode != http.StatusCreated {
-		buffer, err := ioutil.ReadAll(response.Body)
+		buffer, err := io.ReadAll(response.Body)
 		if err != nil {
 			return errors.Wrapf(err, "%s: unable to read response body", errMsg)
 		}
@@ -156,7 +156,7 @@ func (e *EventAPI) Update(eventType *EventType) error {
 	defer response.Body.Close()
 
 	if response.StatusCode != http.StatusOK {
-		buffer, err := ioutil.ReadAll(response.Body)
+		buffer, err := io.ReadAll(response.Body)
 		if err != nil {
 			return errors.Wrapf(err, "%s: unable to read response body", errMsg)
 		}

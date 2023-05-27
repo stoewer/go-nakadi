@@ -2,13 +2,13 @@ package nakadi
 
 import (
 	"encoding/json"
-	"io/ioutil"
 	"net/http"
+	"os"
 	"path/filepath"
 	"testing"
 	"time"
 
-	"github.com/cenkalti/backoff/v3"
+	"github.com/cenkalti/backoff/v4"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -79,7 +79,7 @@ func TestBackOffConfiguration_createBackOff(t *testing.T) {
 
 func helperLoadTestData(t *testing.T, name string, target interface{}) []byte {
 	path := filepath.Join("testdata", name)
-	bytes, err := ioutil.ReadFile(path)
+	bytes, err := os.ReadFile(path)
 	require.NoError(t, err)
 	if target != nil {
 		err = json.Unmarshal(bytes, target)
@@ -103,5 +103,10 @@ func helperMakeCounter(n int) chan int {
 // mocking errors while reading from body
 type brokenBodyReader struct{}
 
-func (brokenBodyReader) Read(p []byte) (n int, err error) { return 0, assert.AnError }
-func (brokenBodyReader) Close() error                     { return nil }
+func (brokenBodyReader) Read(_ []byte) (n int, err error) {
+	return 0, assert.AnError
+}
+
+func (brokenBodyReader) Close() error {
+	return nil
+}

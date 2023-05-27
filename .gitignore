@@ -5,6 +5,7 @@
 
 # Test profile
 profile.cov
+coverage.out
 
 # Playground
 playground

@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"strings"
 	"time"
@@ -145,7 +144,7 @@ func (p *PublishAPI) Publish(events interface{}) error {
 	}
 
 	if response.StatusCode != http.StatusOK {
-		buffer, err := ioutil.ReadAll(response.Body)
+		buffer, err := io.ReadAll(response.Body)
 		if err != nil {
 			return errors.Wrapf(err, "%s: unable to read response body", errMsg)
 		}
@@ -179,7 +178,7 @@ func (err BatchItemsError) Error() string {
 // Format implements fmt.Formatter for BatchItemsError
 func (err BatchItemsError) Format(s fmt.State, verb rune) {
 	if err == nil {
-		io.WriteString(s, "nil")
+		_, _ = io.WriteString(s, "nil")
 		return
 	}
 	switch verb {
@@ -201,12 +200,12 @@ func (err BatchItemsError) Format(s fmt.State, verb rune) {
 			}
 
 			builder.WriteString(strings.Join(messages, ", "))
-			io.WriteString(s, builder.String())
+			_, _ = io.WriteString(s, builder.String())
 
 			return
 		}
 		fallthrough
 	case 's', 'q':
-		io.WriteString(s, err.Error())
+		_, _ = io.WriteString(s, err.Error())
 	}
 }
