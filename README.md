@@ -1,4 +1,4 @@
-[![CircleCI](https://circleci.com/gh/stoewer/go-nakadi/tree/master.svg?style=svg)](https://circleci.com/gh/stoewer/go-nakadi/tree/master)
+[![GH Actions](https://github.com/stoewer/go-nakadi/actions/workflows/lint-test.yml/badge.svg?branch=master)](https://github.com/stoewer/go-nakadi/actions)
 [![codecov](https://codecov.io/gh/stoewer/go-nakadi/branch/master/graph/badge.svg?token=GOFy3mzvj7)](https://codecov.io/gh/stoewer/go-nakadi)
 [![Go Reference](https://pkg.go.dev/badge/github.com/stoewer/go-nakadi.svg)](https://pkg.go.dev/github.com/stoewer/go-nakadi)
 ---
@@ -46,7 +46,7 @@ Test dependencies
 Run unit and integration tests
 ------------------------------
 
-In oder to run the unit and integration tests all of the above dependencies must be installed. Furthermore
+In oder to run the unit and integration tests all of the above dependencies must be installed. Furthermore,
 these tests require a [running Nakadi instance](https://zalando.github.io/nakadi/manual.html#getting-started) 
 on the local computer.
 
@@ -59,4 +59,4 @@ go test -tags=integration .
 License
 -------
 
-This project is open source an published under the [MIT license](LICENSE).
+This project is open source and published under the [MIT license](LICENSE).
