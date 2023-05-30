@@ -46,6 +46,16 @@ type DataChangeEvent struct {
 	DataType string        `json:"data_type"`
 }
 
+type CompressionAlgorithm string
+
+const (
+	CompressionAlgorithmGzip CompressionAlgorithm = "gzip"
+)
+
+var (
+	supportedCompressionAlgorithms = map[CompressionAlgorithm]struct{}{CompressionAlgorithmGzip: {}}
+)
+
 // PublishOptions is a set of optional parameters used to configure the PublishAPI.
 type PublishOptions struct {
 	// Whether or not publish methods retry when publishing fails. If set to true
@@ -62,6 +72,15 @@ type PublishOptions struct {
 	// this value was reached the exponential backoff is halted and the events will not be
 	// published.
 	MaxElapsedTime time.Duration
+	// Whether to enable compression or not. If set to false, CompressionAlgorithm and
+	// CompressionLevel have no effect. (default: false)
+	EnableCompression bool
+	// CompressionAlgorithm the algorithm to be used. Supported values: [gzip]. Invalid values
+	// default to gzip. (default: gzip)
+	CompressionAlgorithm CompressionAlgorithm
+	// CompressionLevel the level of compression to be used. Supported values: [1, 9]. Invalid values
+	// default to gzip.DefaultCompression. (default: gzip.DefaultCompression)
+	CompressionLevel int
 }
 
 func (o *PublishOptions) withDefaults() *PublishOptions {
@@ -77,6 +96,20 @@ func (o *PublishOptions) withDefaults() *PublishOptions {
 	}
 	if copyOptions.MaxElapsedTime == 0 {
 		copyOptions.MaxElapsedTime = defaultMaxElapsedTime
+	}
+	if copyOptions.CompressionAlgorithm == "" {
+		copyOptions.CompressionAlgorithm = defaultCompressionAlgorithm
+	}
+	if _, ok := supportedCompressionAlgorithms[copyOptions.CompressionAlgorithm]; !ok {
+		copyOptions.CompressionAlgorithm = defaultCompressionAlgorithm
+	}
+	if copyOptions.CompressionLevel == 0 {
+		switch copyOptions.CompressionAlgorithm { // default level depends on the compression algorithm used
+		case CompressionAlgorithmGzip:
+			copyOptions.CompressionLevel = defaultGzipCompressionLevel
+		default:
+			copyOptions.CompressionLevel = defaultCompressionLevel
+		}
 	}
 	return &copyOptions
 }
@@ -96,16 +129,23 @@ func NewPublishAPI(client *Client, eventType string, options *PublishOptions) *P
 			Retry:                options.Retry,
 			InitialRetryInterval: options.InitialRetryInterval,
 			MaxRetryInterval:     options.MaxRetryInterval,
-			MaxElapsedTime:       options.MaxElapsedTime}}
+			MaxElapsedTime:       options.MaxElapsedTime},
+		compressionConf: compressionConfiguration{
+			enableCompression: options.EnableCompression,
+			algorithm:         options.CompressionAlgorithm,
+			level:             options.CompressionLevel,
+		},
+	}
 }
 
 // PublishAPI is a sub API for publishing Nakadi events. All publish methods emit events as a single batch. If
 // a publish method returns an error, the caller should check whether the error is a BatchItemsError in order to
 // verify which events of a batch have been published.
 type PublishAPI struct {
-	client      *Client
-	publishURL  string
-	backOffConf backOffConfiguration
+	client          *Client
+	publishURL      string
+	backOffConf     backOffConfiguration
+	compressionConf compressionConfiguration
 }
 
 // PublishDataChangeEvent emits a batch of data change events. Depending on the options used when creating
@@ -123,12 +163,20 @@ func (p *PublishAPI) PublishBusinessEvent(events []BusinessEvent) error {
 }
 
 // Publish is used to emit a batch of undefined events. But can also be used to publish data change or
-// business events. Depending on the options used when creating the PublishAPI this method will retry
-// to publish the events if the were not successfully published.
+// business events. Depending on the retry options used when creating the PublishAPI this method will retry
+// to publish the events if the were not successfully published. Depending on the compression options used,
+// the method will compress the payload before publishing.
 func (p *PublishAPI) Publish(events interface{}) error {
 	const errMsg = "unable to request event types"
+	var response *http.Response
+	var err error
 
-	response, err := p.client.httpPOST(p.backOffConf.create(), p.publishURL, events, errMsg)
+	if p.compressionConf.enableCompression {
+		response, err = p.client.httpPOSTWithCompression(p.backOffConf.create(), p.publishURL, events, errMsg, p.compressionConf)
+	} else {
+		response, err = p.client.httpPOST(p.backOffConf.create(), p.publishURL, events, errMsg)
+	}
+
 	if err != nil {
 		return err
 	}

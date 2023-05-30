@@ -96,6 +96,16 @@ type backOffConfiguration struct {
 	MaxElapsedTime time.Duration
 }
 
+// compressionConfiguration defines the config to be used to compress the payload when publishing events
+type compressionConfiguration struct {
+	// Whether to compress the payload or not.
+	enableCompression bool
+	// The compression algorithm to be used.
+	algorithm CompressionAlgorithm
+	// The level of compression to be used while compressing the payload.
+	level int
+}
+
 // create initializes a new backoff from configured parameters.
 func (rc *backOffConfiguration) create() backoff.BackOff {
 	if !rc.Retry {
