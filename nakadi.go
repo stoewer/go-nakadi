@@ -24,7 +24,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/cenkalti/backoff/v3"
+	"github.com/cenkalti/backoff/v4"
 	"github.com/pkg/errors"
 )
 
@@ -112,12 +112,12 @@ func (c *Client) httpGET(backOff backoff.BackOff, url string, body interface{}, 
 		}
 
 		if response.StatusCode >= 500 {
-			buffer, err := ioutil.ReadAll(response.Body)
+			buffer, err := io.ReadAll(response.Body)
 			if err != nil {
 				return errors.Wrapf(err, "%s: unable to read response body", msg)
 			}
 			err = decodeResponseToError(buffer, msg)
-			response.Body.Close()
+			_ = response.Body.Close()
 			return err
 		}
 
@@ -130,7 +130,7 @@ func (c *Client) httpGET(backOff backoff.BackOff, url string, body interface{}, 
 	defer response.Body.Close()
 
 	if response.StatusCode != http.StatusOK {
-		buffer, err := ioutil.ReadAll(response.Body)
+		buffer, err := io.ReadAll(response.Body)
 		if err != nil {
 			return errors.Wrap(err, "unable to read response body")
 		}
@@ -174,12 +174,12 @@ func (c *Client) httpPUT(backOff backoff.BackOff, url string, body interface{}, 
 		}
 
 		if response.StatusCode >= 500 {
-			buffer, err := ioutil.ReadAll(response.Body)
+			buffer, err := io.ReadAll(response.Body)
 			if err != nil {
 				return errors.Wrapf(err, "%s: unable to read response body", msg)
 			}
 			err = decodeResponseToError(buffer, msg)
-			response.Body.Close()
+			_ = response.Body.Close()
 			return err
 		}
 
@@ -217,12 +217,12 @@ func (c *Client) httpPOSTHelper(backOff backoff.BackOff, url string, payload io.
 		}
 
 		if response.StatusCode >= 500 {
-			buffer, err := ioutil.ReadAll(response.Body)
+			buffer, err := io.ReadAll(response.Body)
 			if err != nil {
 				return errors.Wrapf(err, "%s: unable to read response body", msg)
 			}
 			err = decodeResponseToError(buffer, msg)
-			response.Body.Close()
+			_ = response.Body.Close()
 			return err
 		}
 
@@ -300,12 +300,12 @@ func (c *Client) httpDELETE(backOff backoff.BackOff, url, msg string) error {
 		}
 
 		if response.StatusCode >= 500 {
-			buffer, err := ioutil.ReadAll(response.Body)
+			buffer, err := io.ReadAll(response.Body)
 			if err != nil {
 				return errors.Wrapf(err, "%s: unable to read response body", msg)
 			}
 			err = decodeResponseToError(buffer, msg)
-			response.Body.Close()
+			_ = response.Body.Close()
 			return err
 		}
 
@@ -318,7 +318,7 @@ func (c *Client) httpDELETE(backOff backoff.BackOff, url, msg string) error {
 	defer response.Body.Close()
 
 	if response.StatusCode != http.StatusOK && response.StatusCode != http.StatusNoContent {
-		buffer, err := ioutil.ReadAll(response.Body)
+		buffer, err := io.ReadAll(response.Body)
 		if err != nil {
 			return errors.Wrapf(err, "%s: unable to read response body", msg)
 		}

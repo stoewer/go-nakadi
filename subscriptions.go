@@ -3,7 +3,7 @@ package nakadi
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"time"
 
@@ -35,7 +35,7 @@ type Subscription struct {
 
 // SubscriptionOptions is a set of optional parameters used to configure the SubscriptionAPI.
 type SubscriptionOptions struct {
-	// Whether or not methods of the SubscriptionAPI retry when a request fails. If
+	// Whether methods of the SubscriptionAPI retry when a request fails. If
 	// set to true InitialRetryInterval, MaxRetryInterval, and MaxElapsedTime have
 	// no effect (default: false).
 	Retry bool
@@ -45,7 +45,7 @@ type SubscriptionOptions struct {
 	// MaxRetryInterval the maximum retry interval. Once the exponential backoff reaches
 	// this value the retry intervals remain constant.
 	MaxRetryInterval time.Duration
-	// MaxElapsedTime is the maximum time spent on retries when when performing a request.
+	// MaxElapsedTime is the maximum time spent on retries when performing a request.
 	// Once this value was reached the exponential backoff is halted and the request will
 	// fail with an error.
 	MaxElapsedTime time.Duration
@@ -111,7 +111,7 @@ func (s *SubscriptionAPI) Get(id string) (*Subscription, error) {
 	return subscription, err
 }
 
-// Create initializes a new subscription. If the subscription already exists the pre existing subscription
+// Create initializes a new subscription. If the subscription already exists the pre-existing subscription
 // is returned.
 func (s *SubscriptionAPI) Create(subscription *Subscription) (*Subscription, error) {
 	const errMsg = "unable to create subscription"
@@ -123,7 +123,7 @@ func (s *SubscriptionAPI) Create(subscription *Subscription) (*Subscription, err
 	defer response.Body.Close()
 
 	if response.StatusCode != http.StatusOK && response.StatusCode != http.StatusCreated {
-		buffer, err := ioutil.ReadAll(response.Body)
+		buffer, err := io.ReadAll(response.Body)
 		if err != nil {
 			return nil, errors.Wrapf(err, "%s: unable to read response body", errMsg)
 		}

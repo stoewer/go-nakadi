@@ -19,7 +19,7 @@ func TestSimpleStreamOpener_openStream(t *testing.T) {
 	defer httpmock.DeactivateAndReset()
 
 	createdAt := time.Time{}
-	createdAt.UnmarshalText([]byte("2017-08-17T00:00:23+02:00"))
+	_ = createdAt.UnmarshalText([]byte("2017-08-17T00:00:23+02:00"))
 
 	sub := &Subscription{
 		ID:                "4e6f4b42-5459-11e7-8b76-97cbdf1f5274",

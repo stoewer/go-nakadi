@@ -36,10 +36,10 @@ type ProcessorOptions struct {
 	// CommitMaxElapsedTime is the maximum time spent on retries when committing a cursor. Once this value
 	// was reached the exponential backoff is halted and the cursor will not be committed.
 	CommitMaxElapsedTime time.Duration
-	// NotifyErr is called when an error occurs that leads to a retry. This notify function can be used to
+	// NotifyErr is called when an error occurs that leads to a retry. This notifier function can be used to
 	// detect unhealthy streams. The first parameter indicates the stream No that encountered the error.
 	NotifyErr func(uint, error, time.Duration)
-	// NotifyOK is called whenever a successful operation was completed. This notify function can be used
+	// NotifyOK is called whenever a successful operation was completed. This notifier function can be used
 	// to detect that a stream is healthy again. The first parameter indicates the stream No that just
 	// regained health.
 	NotifyOK func(uint)
@@ -91,7 +91,7 @@ type streamAPI interface {
 }
 
 // NewProcessor creates a new processor for a given subscription ID.  The constructor receives a
-// configured Nakadi client as first parameter. Furthermore a valid subscription ID must be
+// configured Nakadi client as first parameter. Furthermore, a valid subscription ID must be
 // provided. The last parameter is a struct containing only optional parameters. The options may be
 // nil, in this case the processor falls back to the defaults defined in the ProcessorOptions.
 func NewProcessor(client *Client, subscriptionID string, options *ProcessorOptions) *Processor {
@@ -157,7 +157,7 @@ type Operation func(int, string, []byte) error
 
 // Start begins event processing. All event batches received from the underlying streams are passed to
 // the operation function. If the operation function terminates without error the respective cursor will
-// be automatically committed to Nakadi. If the operations terminates with an error, the underlying stream
+// be automatically committed to Nakadi. If the operations terminate with an error, the underlying stream
 // will be halted and a new stream will continue to pass event batches to the operation function.
 //
 // Event processing will go on indefinitely unless the processor is stopped via its Stop method. Star will
@@ -210,7 +210,7 @@ func (p *Processor) startSingleStream(operation Operation, streamNo int, options
 			err = operation(streamNo, cursor.NakadiStreamID, events)
 			if err != nil {
 				options.NotifyErr(err, 0)
-				stream.Close()
+				_ = stream.Close()
 				stream = p.newStream(p.client, p.subscriptionID, &options)
 				continue
 			}
@@ -218,7 +218,7 @@ func (p *Processor) startSingleStream(operation Operation, streamNo int, options
 			err = stream.CommitCursor(cursor)
 			if err != nil {
 				options.NotifyErr(err, 0)
-				stream.Close()
+				_ = stream.Close()
 				stream = p.newStream(p.client, p.subscriptionID, &options)
 				continue
 			}
