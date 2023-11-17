@@ -31,6 +31,7 @@ type Subscription struct {
 	ReadFrom          string                     `json:"read_from,omitempty"`
 	CreatedAt         time.Time                  `json:"created_at,omitempty"`
 	Authorization     *SubscriptionAuthorization `json:"authorization,omitempty"`
+	Annotations       map[string]string          `json:"annotations,omitempty"`
 }
 
 // SubscriptionOptions is a set of optional parameters used to configure the SubscriptionAPI.
