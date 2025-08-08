@@ -9,9 +9,9 @@ import (
 
 	"github.com/cenkalti/backoff/v4"
 	"github.com/jarcoal/httpmock"
-	basic "github.com/opentracing/basictracer-go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"go.opentelemetry.io/otel/trace/noop"
 )
 
 const (
@@ -45,7 +45,9 @@ func TestNew(t *testing.T) {
 	})
 
 	t.Run("with tracing", func(t *testing.T) {
-		client := New(defaultNakadiURL, &ClientOptions{Middleware: NewTracingMiddleware(&TracingOptions{Tracer: basic.NewWithOptions(basic.DefaultOptions()), ComponentName: "nakadi"})})
+		noopTracer := noop.NewTracerProvider().Tracer("noop-tracer")
+
+		client := New(defaultNakadiURL, &ClientOptions{Middleware: NewTracingMiddleware(&TracingOptions{Tracer: noopTracer, ComponentName: "nakadi"})})
 
 		require.NotNil(t, client)
 		assert.Equal(t, client.nakadiURL, defaultNakadiURL)
