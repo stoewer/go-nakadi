@@ -5,19 +5,22 @@ import (
 	"net/http/httptrace"
 	"strings"
 
-	"github.com/opentracing/opentracing-go"
-	"github.com/opentracing/opentracing-go/ext"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/propagation"
+	semconv "go.opentelemetry.io/otel/semconv/v1.31.0"
+	"go.opentelemetry.io/otel/trace"
 )
 
 type TracingOptions struct {
-	Tracer        opentracing.Tracer
+	Tracer        trace.Tracer
 	ComponentName string
 	Verbose       bool
 }
 
 type TracingMiddleware struct {
 	tr            *http.Transport
-	tracer        opentracing.Tracer
+	tracer        trace.Tracer
 	componentName string
 	verbose       bool
 }
@@ -29,68 +32,71 @@ func (t *TracingMiddleware) CloseIdleConnections() {
 // RoundTrip the request with tracing.
 // Client traces are added as logs into the created span.
 func (t *TracingMiddleware) RoundTrip(req *http.Request) (*http.Response, error) {
-	var span opentracing.Span
+	var span trace.Span
 	if t.componentName != "" {
 		req, span = t.injectSpan(req)
-		defer span.Finish()
+		defer span.End()
 		if t.verbose {
 			req = injectRequestSpanLogs(req, span)
 		}
-		span.LogKV("http_do", "start")
+		span.SetAttributes(attribute.String("http_do", "start"))
 	}
 	rsp, err := t.tr.RoundTrip(req)
 	if span != nil {
-		span.LogKV("http_do", "stop")
+		span.SetAttributes(attribute.String("http_do", "stop"))
 		if rsp != nil {
-			ext.HTTPStatusCode.Set(span, uint16(rsp.StatusCode))
+			span.SetAttributes(semconv.HTTPResponseStatusCode(rsp.StatusCode))
 		}
 	}
 	return rsp, err
 }
 
-func (t *TracingMiddleware) injectSpan(req *http.Request) (*http.Request, opentracing.Span) {
-	parentSpan := opentracing.SpanFromContext(req.Context())
-	var span opentracing.Span
+func (t *TracingMiddleware) injectSpan(req *http.Request) (*http.Request, trace.Span) {
+	ctx := req.Context()
 	operationName := getOperationName(req.URL.Path, req.Method)
 
-	if parentSpan != nil {
-		req = req.WithContext(opentracing.ContextWithSpan(req.Context(), parentSpan))
-		span = t.tracer.StartSpan(operationName, opentracing.ChildOf(parentSpan.Context()))
-	} else {
-		span = t.tracer.StartSpan(operationName)
-	}
+	ctx, span := t.tracer.Start(ctx, operationName,
+		trace.WithAttributes(
+			// https://opentelemetry.io/docs/specs/semconv/http/http-spans/#http-client-span
+			attribute.String("otel.component.name", t.componentName),
+			attribute.String("url.full", req.URL.String()),
+			attribute.String("http.request.method", req.Method),
 
-	// add Tags
-	ext.Component.Set(span, t.componentName)
-	ext.HTTPUrl.Set(span, req.URL.String())
-	ext.HTTPMethod.Set(span, req.Method)
-	ext.SpanKind.Set(span, "client")
+			// The attributes below are no longer valid according to semantic convention.
+			// Only here to ensure backward compatibility.
+			attribute.String("component", t.componentName),
+			attribute.String("http.url", req.URL.String()),
+			attribute.String("http.method", req.Method),
+		),
+		trace.WithSpanKind(trace.SpanKindClient))
 
-	_ = t.tracer.Inject(span.Context(), opentracing.HTTPHeaders, opentracing.HTTPHeadersCarrier(req.Header))
+	req = req.WithContext(ctx)
+
+	otel.GetTextMapPropagator().Inject(ctx, propagation.HeaderCarrier(req.Header))
 
 	return req, span
 }
 
-func injectRequestSpanLogs(req *http.Request, span opentracing.Span) *http.Request {
+func injectRequestSpanLogs(req *http.Request, span trace.Span) *http.Request {
 	trace := &httptrace.ClientTrace{
 		ConnectStart: func(string, string) {
-			span.LogKV("connect", "start")
+			span.SetAttributes(attribute.String("connect", "start"))
 		},
 		GetConn: func(string) {
-			span.LogKV("get_conn", "start")
+			span.SetAttributes(attribute.String("get_conn", "start"))
 		},
 		WroteHeaders: func() {
-			span.LogKV("wrote_headers", "done")
+			span.SetAttributes(attribute.String("wrote_headers", "done"))
 		},
 		WroteRequest: func(wri httptrace.WroteRequestInfo) {
 			if wri.Err != nil {
-				span.LogKV("wrote_request", wri.Err.Error())
+				span.SetAttributes(attribute.String("wrote_request", wri.Err.Error()))
 			} else {
-				span.LogKV("wrote_request", "done")
+				span.SetAttributes(attribute.String("wrote_request", "done"))
 			}
 		},
 		GotFirstResponseByte: func() {
-			span.LogKV("got_first_byte", "done")
+			span.SetAttributes(attribute.String("got_first_byte", "done"))
 		},
 	}
 	return req.WithContext(httptrace.WithClientTrace(req.Context(), trace))

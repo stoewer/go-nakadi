@@ -7,14 +7,23 @@ import (
 	"net/http/httptrace"
 	"testing"
 
-	basic "github.com/opentracing/basictracer-go"
 	"github.com/stretchr/testify/assert"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/propagation"
+	"go.opentelemetry.io/otel/sdk/trace"
+	"go.opentelemetry.io/otel/sdk/trace/tracetest"
 )
 
 func TestTracingTransport(t *testing.T) {
-	options := basic.DefaultOptions()
-	options.Recorder = basic.NewInMemoryRecorder()
-	tracer := basic.NewWithOptions(options)
+	exporter := tracetest.NewInMemoryExporter()
+	traceProvider := trace.NewTracerProvider(
+		trace.WithSyncer(exporter),
+	)
+
+	otel.SetTracerProvider(traceProvider)
+	otel.SetTextMapPropagator(propagation.TraceContext{})
+	tracer := traceProvider.Tracer("test-tracer")
+
 	for _, tt := range []struct {
 		name           string
 		tracingOptions TracingOptions
@@ -27,33 +36,35 @@ func TestTracingTransport(t *testing.T) {
 			tracingOptions: TracingOptions{},
 		},
 		{
-			name: "With opentracing",
-			tracingOptions: TracingOptions{
-				Tracer:        tracer,
-				ComponentName: "nakadi"},
-		},
-		{
-			name: "verbose opentracing",
+			name: "With otel",
 			tracingOptions: TracingOptions{
 				Tracer:        tracer,
 				ComponentName: "nakadi",
-				Verbose:       true},
+			},
+		},
+		{
+			name: "verbose otel",
+			tracingOptions: TracingOptions{
+				Tracer:        tracer,
+				ComponentName: "nakadi",
+				Verbose:       true,
+			},
 		},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
+			exporter.Reset()
+
 			ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				if tt.tracingOptions.Tracer != nil {
-					if r.Header.Get("Ot-Tracer-Sampled") == "" ||
-						r.Header.Get("Ot-Tracer-Traceid") == "" ||
-						r.Header.Get("Ot-Tracer-Spanid") == "" {
-						t.Errorf("One of the OT Tracer headers are missing: %v", r.Header)
+					if r.Header.Get("traceparent") == "" {
+						t.Errorf("traceparent header is missing: %v", r.Header)
 					}
 				}
 				w.WriteHeader(http.StatusOK)
 			}))
 			defer ts.Close()
 
-			req := httptest.NewRequest("GET", ts.URL, nil)
+			req := httptest.NewRequest(http.MethodGet, ts.URL, nil)
 
 			client := newHTTPClient(0, NewTracingMiddleware(&tt.tracingOptions))
 			rt := client.Transport
@@ -65,6 +76,33 @@ func TestTracingTransport(t *testing.T) {
 			if err != nil {
 				t.Errorf("Transport RoundTrip error : %v", err)
 				return
+			}
+
+			if tt.tracingOptions.Tracer != nil {
+				spans := exporter.GetSpans()
+				assert.Greater(t, len(spans), 0, "Expected at least one span to be created")
+
+				if len(spans) > 0 {
+					span := spans[0]
+					assert.NotEmpty(t, span.Name, "Span should have a name")
+
+					// Check for HTTP semantic convention attributes.
+					attrs := span.Attributes
+					hasHTTPMethod := false
+					hasURL := false
+
+					for _, attr := range attrs {
+						switch string(attr.Key) {
+						case "http.request.method":
+							hasHTTPMethod = true
+						case "url.full":
+							hasURL = true
+						}
+					}
+
+					assert.True(t, hasHTTPMethod, "Span should have 'http.request.method' attribute")
+					assert.True(t, hasURL, "Span should have 'url.full' attribute")
+				}
 			}
 
 		})
