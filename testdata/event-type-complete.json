@@ -24,6 +24,34 @@
   "options": {
     "retention_time": 345600000
   },
+  "authorization": {
+    "admins": [
+      {
+        "data_type": "service",
+        "value": "stups_nakadi-k8s-operator"
+      },
+      {
+        "data_type": "team",
+        "value": "test-team-a"
+      }
+    ],
+    "readers": [
+      {
+        "data_type": "team",
+        "value": "test-team-b"
+      },
+      {
+        "data_type": "user",
+        "value": "testuser"
+      }
+    ],
+    "writers": [
+      {
+        "data_type": "service",
+        "value": "stups_test-service"
+      }
+    ]
+  },
   "created_at": "2017-08-07T22:53:03+02:00",
   "updated_at": "2017-08-08T22:53:03+02:00"
 }

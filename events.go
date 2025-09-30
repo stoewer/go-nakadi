@@ -11,18 +11,19 @@ import (
 
 // An EventType defines a kind of event that can be processed on a Nakadi service.
 type EventType struct {
-	Name                 string               `json:"name"`
-	OwningApplication    string               `json:"owning_application"`
-	Category             string               `json:"category"`
-	EnrichmentStrategies []string             `json:"enrichment_strategies,omitempty"`
-	PartitionStrategy    string               `json:"partition_strategy,omitempty"`
-	CompatibilityMode    string               `json:"compatibility_mode,omitempty"`
-	Schema               *EventTypeSchema     `json:"schema"`
-	PartitionKeyFields   []string             `json:"partition_key_fields"`
-	DefaultStatistics    *EventTypeStatistics `json:"default_statistics,omitempty"`
-	Options              *EventTypeOptions    `json:"options,omitempty"`
-	CreatedAt            time.Time            `json:"created_at,omitempty"`
-	UpdatedAt            time.Time            `json:"updated_at,omitempty"`
+	Name                 string                  `json:"name"`
+	OwningApplication    string                  `json:"owning_application"`
+	Category             string                  `json:"category"`
+	EnrichmentStrategies []string                `json:"enrichment_strategies,omitempty"`
+	PartitionStrategy    string                  `json:"partition_strategy,omitempty"`
+	CompatibilityMode    string                  `json:"compatibility_mode,omitempty"`
+	Schema               *EventTypeSchema        `json:"schema"`
+	PartitionKeyFields   []string                `json:"partition_key_fields"`
+	DefaultStatistics    *EventTypeStatistics    `json:"default_statistics,omitempty"`
+	Options              *EventTypeOptions       `json:"options,omitempty"`
+	Authorization        *EventTypeAuthorization `json:"authorization,omitempty"`
+	CreatedAt            time.Time               `json:"created_at,omitempty"`
+	UpdatedAt            time.Time               `json:"updated_at,omitempty"`
 }
 
 // EventTypeSchema is a non optional description of the schema on an event type.
@@ -46,6 +47,13 @@ type EventTypeStatistics struct {
 // EventTypeOptions provide additional parameters for tuning Nakadi.
 type EventTypeOptions struct {
 	RetentionTime int64 `json:"retention_time"`
+}
+
+// EventTypeAuthorization represents authorization settings for an event type.
+type EventTypeAuthorization struct {
+	Admins  []AuthorizationAttribute `json:"admins"`
+	Readers []AuthorizationAttribute `json:"readers"`
+	Writers []AuthorizationAttribute `json:"writers"`
 }
 
 // EventOptions is a set of optional parameters used to configure the EventAPI.
