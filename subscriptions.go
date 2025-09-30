@@ -10,7 +10,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-// AuthorizationAttribute represents a record for SubscriptionAuthorization which is used by the Nakadi high level API.
+// AuthorizationAttribute represents a record for SubscriptionAuthorization and EventTypeAuthorization which is used by the Nakadi high level API.
 type AuthorizationAttribute struct {
 	DataType string `json:"data_type"`
 	Value    string `json:"value"`
