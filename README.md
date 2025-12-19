@@ -1,6 +1,7 @@
-[![GH Actions](https://github.com/stoewer/go-nakadi/actions/workflows/lint-test.yml/badge.svg?branch=master)](https://github.com/stoewer/go-nakadi/actions)
-[![codecov](https://codecov.io/gh/stoewer/go-nakadi/branch/master/graph/badge.svg?token=GOFy3mzvj7)](https://codecov.io/gh/stoewer/go-nakadi)
-[![Go Reference](https://pkg.go.dev/badge/github.com/stoewer/go-nakadi.svg)](https://pkg.go.dev/github.com/stoewer/go-nakadi)
+> [!NOTE]
+> This project is no longer maintained and therefore archived. The main reason for archiving is that [nakadi](https://github.com/zalando/nakadi) is no 
+> longer developed in the open. This makes it impossible to develop and test against recent versions of nakadi.
+
 ---
 
 go-nakadi
